@@ -1,0 +1,30 @@
+@import "tailwindcss";
+@import "tailwindcss/preflight";
+@import "tailwindcss/utilities";
+@import "tailwindcss/theme";
+
+
+
+
+:root {
+  --bg-light: #ececec;
+  --bg-dark: #0e1424;
+  --text-light: #0e1424;
+  --text-dark: #ececec;
+  --accent-light: #374254;
+  --accent-dark: #adbbc6;
+  --muted: #8a8fa3;
+}
+
+
+.shelf::-webkit-scrollbar {
+  display: none;
+}
+
+
+
+
+body {
+  font-family: system-ui, sans-serif;
+}
+

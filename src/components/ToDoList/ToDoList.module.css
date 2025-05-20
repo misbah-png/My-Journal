@@ -1,0 +1,56 @@
+.container {
+  padding: 1rem;
+  background-color: #fdfdfd;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.add {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.add input {
+  flex-grow: 1;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.add button {
+  padding: 0.5rem 1rem;
+  background-color: #0e1424;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+}
+
+.list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+}
+
+.completed span {
+  text-decoration: line-through;
+  color: #8a8fa3;
+}
+
+.list button {
+  background: transparent;
+  border: none;
+  color: #ad2d2d;
+  font-size: 1rem;
+  cursor: pointer;
+}
