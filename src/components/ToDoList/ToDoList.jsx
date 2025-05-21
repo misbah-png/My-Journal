@@ -11,6 +11,12 @@ export default function ToDoList() {
   }, []);
 
   useEffect(() => {
+  const savedTasks = JSON.parse(localStorage.getItem('todoTasks')) || [];
+  setTasks(savedTasks);
+}, []);
+
+ 
+  useEffect(() => {
     localStorage.setItem('todoTasks', JSON.stringify(tasks));
   }, [tasks]);
 

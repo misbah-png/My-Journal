@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import styles from './HabitTracker.module.css';
 
-const getWeekNumber = () => {
+const getCurrentWeekKey = () => {
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 1);
   const days = Math.floor((now - start) / (24 * 60 * 60 * 1000));
-  return Math.ceil((now.getDay() + 1 + days) / 7);
+  const weekNum = Math.ceil((now.getDay() + 1 + days) / 7);
+  return `${now.getFullYear()}-W${weekNum}`;
 };
 
 const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -13,27 +14,21 @@ const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export default function HabitTracker() {
   const [habits, setHabits] = useState([]);
   const [newHabit, setNewHabit] = useState('');
-  const [week, setWeek] = useState(getWeekNumber());
+  const [weekKey, setWeekKey] = useState(getCurrentWeekKey());
 
+  // Load habits for the current week
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('weeklyHabits')) || {};
-    const currentWeek = getWeekNumber();
+    const allData = JSON.parse(localStorage.getItem('weeklyHabits')) || {};
+    const currentHabits = allData[weekKey] || [];
+    setHabits(currentHabits);
+  }, [weekKey]);
 
-    if (stored.week === currentWeek) {
-      setHabits(stored.habits || []);
-    } else {
-      const resetHabits = stored.habits?.map(habit => ({
-        name: habit.name,
-        days: Array(7).fill(false),
-      })) || [];
-      setHabits(resetHabits);
-    }
-    setWeek(currentWeek);
-  }, []);
-
+  // Save to localStorage every time habits change
   useEffect(() => {
-    localStorage.setItem('weeklyHabits', JSON.stringify({ week, habits }));
-  }, [habits, week]);
+    const allData = JSON.parse(localStorage.getItem('weeklyHabits')) || {};
+    allData[weekKey] = habits;
+    localStorage.setItem('weeklyHabits', JSON.stringify(allData));
+  }, [habits, weekKey]);
 
   const addHabit = () => {
     if (!newHabit.trim()) return;

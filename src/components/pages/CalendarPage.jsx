@@ -1,6 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
 
-// === Utility ===
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const timeSlots = Array.from({ length: 21 }, (_, i) => {
   const hour = 8 + Math.floor(i / 2);
@@ -172,6 +172,17 @@ export default function WeeklyPlanner() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
+  useEffect(() => {
+    const stored = localStorage.getItem('weeklyEvents');
+    if (stored) {
+      setEvents(JSON.parse(stored));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('weeklyEvents', JSON.stringify(events));
+  }, [events]);
+
   const handleSave = (task) => {
     setEvents((prev) =>
       prev.some((e) => e.id === task.id)
@@ -203,29 +214,31 @@ export default function WeeklyPlanner() {
           />
         ))}
       </div>
+
+      {/* Floating Add Button */}
       <button
-  onClick={handleAddClick}
-  style={{
-    position: 'fixed',
-    bottom: '20px',
-    right: '20px',
-    padding: '12px 16px',
-    fontSize: '16px',
-    backgroundColor: '#007bff',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '50%',
-    width: '50px',
-    height: '50px',
-    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
-    cursor: 'pointer',
-  }}
-  title="Add Task"
->
-  +
-</button>
+        onClick={handleAddClick}
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          padding: '12px 16px',
+          fontSize: '16px',
+          backgroundColor: '#007bff',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
+          cursor: 'pointer',
+        }}
+        title="Add Task"
+      >
+        +
+      </button>
 
-
+      {/* Modal */}
       <AddEditTaskModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
