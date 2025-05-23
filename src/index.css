@@ -4,27 +4,35 @@
 @import "tailwindcss/theme";
 
 
-
-
-:root {
-  --bg-light: #ececec;
-  --bg-dark: #0e1424;
-  --text-light: #0e1424;
-  --text-dark: #ececec;
-  --accent-light: #374254;
-  --accent-dark: #adbbc6;
-  --muted: #8a8fa3;
+.app-layout {
+  display: flex;
 }
 
-
-.shelf::-webkit-scrollbar {
-  display: none;
+/* Account for the fixed navbar space */
+.page-content {
+  flex-grow: 1;
+  padding: 20px;
+  margin-left: 220px; /* match or slightly exceed navbar width */
+  min-height: 100vh;
+  background: #f9f9f9;
+  transition: margin-left 0.3s ease;
 }
 
-
-
-
-body {
-  font-family: system-ui, sans-serif;
+/* If navbar collapses */
+.navbar.collapsed + .page-content {
+  margin-left: 80px; /* match collapsed navbar width */
 }
 
+.app-content {
+  padding: 24px;
+  margin-left: 200px;
+  margin-top: 0;
+  transition: margin-left 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .app-content {
+    margin-left: 0;
+    margin-top: 56px; /* below top-header */
+  }
+}

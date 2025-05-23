@@ -1,13 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
- 
+import './Home.css';
 
-function StatCard({ title, value, color }) {
+function StatRing({ title, value, max = 100, color, to }) {
+  const percentage = Math.min((value / max) * 100, 100);
+  const strokeDashoffset = 282 - (282 * percentage) / 100;
+
   return (
-    <div className="p-4 rounded-lg text-center" style={{ backgroundColor: color }}>
-      <p className="text-xl font-bold">{value}</p>
-      <p className="text-sm text-gray-700">{title}</p>
-    </div>
+    <Link to={to} className="stat-ring">
+      <svg viewBox="0 0 100 100">
+        <circle className="bg" cx="50" cy="50" r="45" />
+        <circle
+          className="progress"
+          cx="50"
+          cy="50"
+          r="45"
+          style={{
+            stroke: color,
+            strokeDashoffset,
+          }}
+        />
+        <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle">
+          {value}
+        </text>
+      </svg>
+      <p className="stat-label">{title}</p>
+    </Link>
   );
 }
 
@@ -20,8 +38,13 @@ export function HomeStats() {
   });
 
   useEffect(() => {
-    const tasks = JSON.parse(localStorage.getItem('weeklyEvents') || '[]');
-    const habits = JSON.parse(localStorage.getItem('habitData') || '[]');
+    const tasks = JSON.parse(localStorage.getItem('todoTasks') || '[]');
+const tasksCompleted = tasks.filter(t => t.completed).length;
+
+    const habitData = JSON.parse(localStorage.getItem('weeklyHabits') || '{}');
+const habits = habitData.habits || [];
+const habitsTracked = habits.length;
+
     const streak = JSON.parse(localStorage.getItem('habitStreak') || '{}');
 
     setStats({
@@ -33,25 +56,46 @@ export function HomeStats() {
   }, []);
 
   const cards = [
-    { title: 'Tasks Completed', value: stats.tasksCompleted, color: '#fde68a' },
-    { title: 'Habits Tracked', value: stats.habitsTracked, color: '#d8b4fe' },
-    { title: 'Current Streak', value: stats.currentStreak, color: '#f9a8d4' },
-    { title: 'Longest Streak', value: stats.longestStreak, color: '#c4b5fd' },
+    { title: 'Tasks Completed', value: stats.tasksCompleted, color: '#facc15', to: '/tasks-and-habits' },
+    { title: 'Habits Tracked', value: stats.habitsTracked, color: '#a855f7', to: '/habit-tracker' },
+    { title: 'Current Streak', value: stats.currentStreak, color: '#ec4899', to: '/habit-tracker' },
+    { title: 'Longest Streak', value: stats.longestStreak, color: '#8b5cf6', to: '/habit-tracker' },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div className="stats-ring-grid">
       {cards.map((card) => (
-        <StatCard key={card.title} {...card} />
+        <StatRing key={card.title} {...card} />
       ))}
     </div>
   );
 }
+
 export default function Home() {
+  const [profilePic, setProfilePic] = useState(null);
   const [routineGroups, setRoutineGroups] = useState({});
   const [groupName, setGroupName] = useState('');
   const [newRoutine, setNewRoutine] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
+
+  useEffect(() => {
+    const storedImage = localStorage.getItem('profilePic');
+    if (storedImage) {
+      setProfilePic(storedImage);
+    }
+  }, []);
+
+  const handleProfileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        localStorage.setItem('profilePic', reader.result);
+        setProfilePic(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddGroup = () => {
     if (groupName.trim() && !routineGroups[groupName.trim()]) {
@@ -74,59 +118,51 @@ export default function Home() {
     setRoutineGroups({ ...routineGroups, [group]: updated });
   };
 
-  
-
-  
-
   return (
-    <div className="flex h-screen">
-      
-
-      {/* Main Content */}
-      <div className="flex-1 p-6 bg-gray-50 overflow-y-auto">
-        {/* Greeting */}
-        <div className="bg-purple-100 p-6 rounded-xl flex items-center justify-between mb-6">
+    <div className="home-container">
+      <div className="main-content">
+        <div className="greeting-card">
           <div>
-            <h2 className="text-2xl font-semibold">Hi there 👋</h2>
-            <p className="text-gray-700">Set up your day and track your productivity!</p>
+            <h2>Hi there 👋</h2>
+            <p>Set up your day and track your productivity!</p>
           </div>
-          <img src="/assistant-illustration.png" alt="Assistant" className="h-24" />
+          <div className="profile-upload">
+            <label htmlFor="profilePicInput">
+              <img
+                src={profilePic || '/assistant-illustration.png'}
+                alt="Profile"
+                className="profile-pic"
+              />
+            </label>
+            <input
+              id="profilePicInput"
+              type="file"
+              accept="image/*"
+              onChange={handleProfileUpload}
+              style={{ display: 'none' }}
+            />
+          </div>
         </div>
 
-        <div>
-            <HomeStats />
-        </div>
-  
+        <HomeStats />
 
+        <div className="routine-planner">
+          <h3>Your Daily Routine</h3>
 
-
-        {/* Routine Planner */}
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h3 className="text-lg font-semibold mb-4">Your Daily Routine</h3>
-
-          {/* Add Group */}
-          <div className="flex mb-4 gap-2">
+          <div className="form-row">
             <input
               type="text"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              className="flex-1 border px-3 py-2 rounded-md"
               placeholder="Add routine group (e.g., Morning, Workout)..."
             />
-            <button
-              onClick={handleAddGroup}
-              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
-            >
-              Add Group
-            </button>
+            <button onClick={handleAddGroup}>Add Group</button>
           </div>
 
-          {/* Select Group */}
-          <div className="mb-4">
+          <div className="form-select">
             <select
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}
-              className="w-full border px-3 py-2 rounded-md"
             >
               <option value="">Select a group</option>
               {Object.keys(routineGroups).map((group, i) => (
@@ -135,41 +171,26 @@ export default function Home() {
             </select>
           </div>
 
-          {/* Add Routine */}
-          <div className="flex mb-4 gap-2">
+          <div className="form-row">
             <input
               type="text"
               value={newRoutine}
               onChange={(e) => setNewRoutine(e.target.value)}
-              className="flex-1 border px-3 py-2 rounded-md"
               placeholder={`Add new routine to ${selectedGroup || 'selected group'}...`}
             />
-            <button
-              onClick={handleAddRoutine}
-              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
-              disabled={!selectedGroup}
-            >
+            <button onClick={handleAddRoutine} disabled={!selectedGroup}>
               Add Routine
             </button>
           </div>
 
-          {/* Routine Lists */}
           {Object.keys(routineGroups).map((group, i) => (
-            <div key={i} className="mb-6">
-              <h4 className="text-md font-semibold text-purple-700 mb-2">{group}</h4>
-              <ul className="space-y-2">
+            <div key={i} className="routine-group">
+              <h4>{group}</h4>
+              <ul>
                 {routineGroups[group].map((routine, idx) => (
-                  <li
-                    key={idx}
-                    className="flex justify-between items-center bg-gray-100 p-3 rounded-md"
-                  >
+                  <li key={idx}>
                     <span>{routine}</span>
-                    <button
-                      onClick={() => handleDeleteRoutine(group, idx)}
-                      className="text-sm text-red-500 hover:underline"
-                    >
-                      Delete
-                    </button>
+                    <button onClick={() => handleDeleteRoutine(group, idx)}>Delete</button>
                   </li>
                 ))}
               </ul>
@@ -180,4 +201,3 @@ export default function Home() {
     </div>
   );
 }
-
