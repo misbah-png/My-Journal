@@ -1,0 +1,51 @@
+.appContainer {
+  width: 90vw;
+  max-width: 1200px;
+  margin: 2rem auto;
+  background: #fdfdfd;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: 'Georgia', serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabContainer {
+  display: flex;
+  background: #0e1424;
+  padding: 0.5rem;
+  justify-content: center;
+  gap: 1rem;
+  border-bottom: 3px solid #374254;
+}
+
+.tab {
+  padding: 0.6rem 1.2rem;
+  font-weight: bold;
+  color: #adbbc6;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.tab:hover {
+  border: 2px solid #8a8fa3;
+  background-color: #374254;
+  color: #ececec;
+}
+
+.active {
+  background-color: #374254;
+  border-color: #8a8fa3;
+  color: #ececec;
+}
+
+.page {
+  padding: 2rem;
+  background: #fff;
+  overflow-y: auto;
+  min-height: 400px;
+}

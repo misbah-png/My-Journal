@@ -1,0 +1,45 @@
+.container {
+  padding: 1rem;
+  background: #fefefe;
+  border-radius: 10px;
+  max-width: 800px;
+  margin: auto;
+}
+
+.add {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.add input {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.add button {
+  padding: 0.5rem 1rem;
+  background-color: #0e1424;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.5rem;
+  text-align: center;
+  border: 1px solid #ccc;
+}
+
+th {
+  background-color: #eaeaea;
+}
