@@ -2,57 +2,134 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './Home.css';
 
-function StatCard({ title, value, color }) {
+
+function StatRing({ title, value, max = 100, color, to }) {
+  const percentage = Math.min((value / max) * 100, 100);
+  const strokeDashoffset = 282 - (282 * percentage) / 100;
+
   return (
-    <div className="stat-card" style={{ backgroundColor: color }}>
-      <p className="stat-value">{value}</p>
-      <p className="stat-title">{title}</p>
-    </div>
+    <Link to={to} className="stat-ring">
+      <svg viewBox="0 0 100 100">
+        <circle className="bg" cx="50" cy="50" r="45" />
+        <circle
+          className="progress"
+          cx="50"
+          cy="50"
+          r="45"
+          style={{
+            stroke: color,
+            strokeDashoffset,
+          }}
+        />
+        <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle">
+          {value}
+        </text>
+      </svg>
+      <p className="stat-label">{title}</p>
+    </Link>
   );
 }
 
 export function HomeStats() {
   const [stats, setStats] = useState({
     tasksCompleted: 0,
-    habitsTracked: 0,
+    totalTasks: 0,
+    habitsCompletedToday: 0,
+    totalHabitsToday: 0,
     currentStreak: 0,
     longestStreak: 0,
   });
 
   useEffect(() => {
-    const tasks = JSON.parse(localStorage.getItem('weeklyEvents') || '[]');
-    const habits = JSON.parse(localStorage.getItem('habitData') || '[]');
+    const tasks = JSON.parse(localStorage.getItem('todoTasks') || '[]');
+    const completedTasks = tasks.filter(t => t.completed).length;
+
+    const habitData = JSON.parse(localStorage.getItem('weeklyHabits') || '{}');
+    const habits = habitData.habits || [];
+
+    const todayIndex = new Date().getDay();
+    const correctedDayIndex = todayIndex === 0 ? 6 : todayIndex - 1;
+
+    const habitsCompletedToday = habits.reduce(
+      (count, habit) => count + (habit.days?.[correctedDayIndex] ? 1 : 0),
+      0
+    );
+
     const streak = JSON.parse(localStorage.getItem('habitStreak') || '{}');
 
     setStats({
-      tasksCompleted: tasks.length,
-      habitsTracked: habits.length,
+      tasksCompleted: completedTasks,
+      totalTasks: tasks.length,
+      habitsCompletedToday,
+      totalHabitsToday: habits.length,
       currentStreak: streak.current || 0,
       longestStreak: streak.longest || 0,
     });
   }, []);
 
   const cards = [
-    { title: 'Tasks Completed', value: stats.tasksCompleted, color: '#fde68a' },
-    { title: 'Habits Tracked', value: stats.habitsTracked, color: '#d8b4fe' },
-    { title: 'Current Streak', value: stats.currentStreak, color: '#f9a8d4' },
-    { title: 'Longest Streak', value: stats.longestStreak, color: '#c4b5fd' },
+    {
+      title: 'Tasks Done',
+      value: stats.tasksCompleted,
+      max: stats.totalTasks || 1,
+      color: '#facc15',
+      to: '/tasks-and-habits',
+    },
+    {
+      title: 'Habits Today',
+      value: stats.habitsCompletedToday,
+      max: stats.totalHabitsToday || 1,
+      color: '#34d399',
+      to: '/habit-tracker',
+    },
+    {
+      title: 'Current Streak',
+      value: stats.currentStreak,
+      color: '#ec4899',
+      to: '/habit-tracker',
+    },
+    {
+      title: 'Longest Streak',
+      value: stats.longestStreak,
+      color: '#8b5cf6',
+      to: '/habit-tracker',
+    },
   ];
 
   return (
-    <div className="main-content">
+    <div className="stats-ring-grid">
       {cards.map((card) => (
-        <StatCard key={card.title} {...card} />
+        <StatRing key={card.title} {...card} />
       ))}
     </div>
   );
 }
 
 export default function Home() {
+  const [profilePic, setProfilePic] = useState(null);
   const [routineGroups, setRoutineGroups] = useState({});
   const [groupName, setGroupName] = useState('');
   const [newRoutine, setNewRoutine] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
+
+  useEffect(() => {
+    const storedImage = localStorage.getItem('profilePic');
+    if (storedImage) {
+      setProfilePic(storedImage);
+    }
+  }, []);
+
+  const handleProfileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        localStorage.setItem('profilePic', reader.result);
+        setProfilePic(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddGroup = () => {
     if (groupName.trim() && !routineGroups[groupName.trim()]) {
@@ -83,7 +160,22 @@ export default function Home() {
             <h2>Hi there 👋</h2>
             <p>Set up your day and track your productivity!</p>
           </div>
-          <img src="/assistant-illustration.png" alt="Assistant" />
+          <div className="profile-upload">
+            <label htmlFor="profilePicInput">
+              <img
+                src={profilePic || '/assistant-illustration.png'}
+                alt="Profile"
+                className="profile-pic"
+              />
+            </label>
+            <input
+              id="profilePicInput"
+              type="file"
+              accept="image/*"
+              onChange={handleProfileUpload}
+              style={{ display: 'none' }}
+            />
+          </div>
         </div>
 
         <HomeStats />

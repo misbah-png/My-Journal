@@ -1,0 +1,201 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  background-color: #f9f9f9;
+  padding: 1rem;
+  font-family: 'Inter', sans-serif;
+}
+
+.container {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background-color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.timeColumn {
+  min-width: 60px;
+  border-right: 1px solid #ddd;
+  padding-top: 30px;
+  font-size: 12px;
+  color: #666;
+  background-color: #f0f0f0;
+}
+
+.timeSlot {
+  height: 40px;
+  display: flex;
+  align-items: start;
+  justify-content: flex-end;
+  padding-right: 5px;
+}
+
+.dayColumn {
+  flex: 1;
+  border-right: 1px solid #eee;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  position: relative;
+}
+
+.dayHeader {
+  text-align: center;
+  padding: 10px 0;
+  background-color: #f3f3f3;
+  font-weight: 600;
+  border-bottom: 1px solid #ddd;
+}
+
+.eventsContainer {
+  position: relative;
+  flex-grow: 1;
+  height: 1680px; 
+}
+
+.scheduledBlock {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  border-radius: 8px;
+  padding: 4px 6px;
+  font-size: 13px;
+  background-color: #89cff0;
+  color: #333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.1s ease;
+}
+.scheduledBlock:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.addButton {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  font-size: 28px;
+  font-weight: bold;
+  border: none;
+  border-radius: 50%;
+  background-color: #4caf50;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s ease;
+}
+.addButton:hover {
+  background-color: #45a049;
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+
+.modalContent {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  z-index: 1001;
+  width: 300px;
+  max-width: 90%;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modalForm input,
+.modalForm select {
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modalForm input[type="color"] {
+  height: 36px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.buttonRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.buttonRow button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.buttonRow button[type='submit'] {
+  background-color: #007bff;
+  color: white;
+}
+.buttonRow button[type='submit']:hover {
+  background-color: #006be6;
+}
+
+.buttonRow button[type='button'] {
+  background-color: #ccc;
+}
+.buttonRow button[type='button']:hover {
+  background-color: #bbb;
+}
+
+.buttonRow button:last-child {
+  background-color: #e74c3c;
+  color: white;
+}
+.buttonRow button:last-child:hover {
+  background-color: #c0392b;
+}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import styles from './Login.module.css';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -19,9 +20,9 @@ export default function Login() {
   };
 
   return (
-    <div className="login-container">
-  <h2>Login</h2>
-  <form onSubmit={handleLogin}>
+    <div className={styles['login-container']}>
+  <h2 className={styles.h2}>Login</h2>
+  <form onSubmit={handleLogin} className={styles.form}>
     <input
       type="email"
       placeholder="Email"
@@ -37,11 +38,10 @@ export default function Login() {
       required
     />
     <button type="submit">Login</button>
-    {error && <p className="error">{error}</p>}
-  </form>
+    {error && <p className={styles.error}>{error}</p>}
 
-  {/* Move links outside the form */}
-  <p>Don't have an account? <a href="/register">Register</a></p>
+  </form>
+  <p className={styles.p}>Don't have an account? <a className={styles.a} href="/register">Register</a></p>
   <p>Forgot your password? <a href="/reset-password">Reset Password</a></p>
 </div>
 
