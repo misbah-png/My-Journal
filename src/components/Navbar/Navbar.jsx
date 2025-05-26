@@ -8,12 +8,18 @@ export default function Navbar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(localStorage.getItem('darkMode') === 'true');
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle('dark', darkMode);
+    localStorage.setItem('darkMode', darkMode);
+  }, [darkMode]);
 
   const isActive = (path) => pathname === path ? 'nav-link active' : 'nav-link';
 
@@ -28,7 +34,7 @@ export default function Navbar() {
       {isMobile && (
         <>
           <header className="top-header">
-            <span className="app-title">My Journal</span>
+            <img src="/logo.png" alt="Logo" className="logo-img" />
             <button className="menu-toggle" onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
               <FaBars />
             </button>
@@ -44,6 +50,10 @@ export default function Navbar() {
             <Link to="/calendar" className={isActive('/calendar')} onClick={() => setIsDrawerOpen(false)}>
               <FaCalendarAlt /> <span>Calendar</span>
             </Link>
+            <label className="dark-toggle">
+              <input type="checkbox" checked={darkMode} onChange={() => setDarkMode(!darkMode)} />
+              <span className="slider" />
+            </label>
             <button onClick={handleLogout} className="logout-button">Logout</button>
           </nav>
 
@@ -55,9 +65,10 @@ export default function Navbar() {
       {!isMobile && (
         <nav className={`sidebar-desktop ${isCollapsed ? 'collapsed' : ''}`}>
           <div className="brand" onClick={() => setIsCollapsed(!isCollapsed)}>
-            <span role="img" aria-label="logo">📝</span>
+            <img src="/logo.png" alt="Logo" className="logo-img" />
             {!isCollapsed && <h1>My Journal</h1>}
           </div>
+
           <div className="nav-links">
             <Link to="/" className={isActive('/')}>
               <FaHome />
@@ -72,10 +83,16 @@ export default function Navbar() {
               {!isCollapsed && <span>Calendar</span>}
             </Link>
           </div>
-          <button onClick={handleLogout} className="logout-button">Logout</button>
+
+          <div className="sidebar-bottom">
+            <label className="dark-toggle">
+              <input type="checkbox" checked={darkMode} onChange={() => setDarkMode(!darkMode)} />
+              <span className="slider" />
+            </label>
+            <button onClick={handleLogout} className="logout-button">Logout</button>
+          </div>
         </nav>
       )}
     </>
   );
 }
-

@@ -4,13 +4,18 @@ import Navbar from './components/Navbar/Navbar';
 import Home from './components/pages/Home';
 import TasksAndHabits from './components/pages/TasksAndHabits';
 import CalendarPage from './components/pages/CalendarPage';
-import Login from './components/Login';
-import Register from './components/Register';
+import Login from './components/SignUp/Login';
+import Register from './components/SignUp/Register';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('loggedIn') === 'true');
 
+ 
+
+
   // Listen for login/logout updates
+  
+  
   useEffect(() => {
     const handleStorage = () => {
       setIsLoggedIn(localStorage.getItem('loggedIn') === 'true');

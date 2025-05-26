@@ -1,56 +1,197 @@
+/* ToDoList.module.css */
+
 .container {
   padding: 1rem;
-  background-color: #fdfdfd;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 1rem;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(128, 90, 213, 0.2);
+  max-width: 42rem;
+  margin: 2rem auto;
 }
 
-.add {
-  display: flex;
-  gap: 0.5rem;
+.heading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #7c3aed;
   margin-bottom: 1rem;
 }
 
-.add input {
+.addButton,
+.cancelButton {
+  border-radius: 9999px;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: background 0.2s ease-in-out;
+}
+
+.addButton {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.addButton:hover {
+  background-color: #7c3aed;
+}
+
+.cancelButton {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.cancelButton:hover {
+  background-color: #d1d5db;
+}
+
+.formSection {
+  background-color: #f3e8ff;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: inset 0 0 4px rgba(128, 90, 213, 0.2);
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.formRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.input {
   flex-grow: 1;
   padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: 0.375rem;
+  border: 1px solid #d8b4fe;
 }
 
-.add button {
-  padding: 0.5rem 1rem;
-  background-color: #0e1424;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.list {
-  list-style: none;
-  padding: 0;
+.taskItem {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e9d5ff;
+  background-color: #faf5ff;
+  color: #5b21b6;
 }
 
-.list li {
+.taskItem.completed {
+  background-color: #ede9fe;
+  text-decoration: line-through;
+  color: #6b7280;
+}
+
+.taskHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem;
-  margin-bottom: 0.25rem;
-  border-bottom: 1px solid #ddd;
+}
+
+.taskTitle {
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tag {
+  background-color: #ddd6fe;
+  color: #6b21a8;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  margin-right: 0.25rem;
+}
+
+.category {
+  font-style: italic;
+}
+
+.taskMeta {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #7e22ce;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.subtaskSection {
+  margin-top: 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.subtaskList {
+  list-style-type: disc;
+  list-style-position: inside;
+  font-size: 0.875rem;
+  color: #6b21a8;
+}
+
+.subtaskItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.subtaskControls {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.subtaskInput {
+  flex-grow: 1;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d8b4fe;
+  border-radius: 0.375rem;
+}
+
+.subtaskAddBtn {
+  background-color: #8b5cf6;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  transition: background 0.2s ease-in-out;
+}
+
+.subtaskAddBtn:hover {
+  background-color: #7c3aed;
+}
+
+.iconButton {
+  font-weight: bold;
   cursor: pointer;
 }
 
-.completed span {
-  text-decoration: line-through;
-  color: #8a8fa3;
+.iconButton.delete {
+  color: #ef4444;
 }
 
-.list button {
-  background: transparent;
-  border: none;
-  color: #ad2d2d;
-  font-size: 1rem;
-  cursor: pointer;
+.iconButton.delete:hover {
+  color: #b91c1c;
+}
+
+.iconButton.star {
+  color: #facc15;
+}
+
+.iconButton.star:hover {
+  color: #ca8a04;
+}
+
+.topBadge {
+  margin-left: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.625rem;
+  background-color: #fde68a;
+  color: #92400e;
+  border-radius: 9999px;
+  font-weight: bold;
 }
