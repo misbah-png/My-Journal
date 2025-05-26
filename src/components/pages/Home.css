@@ -1,0 +1,228 @@
+/* Layout */
+.home-container {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar-desktop {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.main-content {
+  flex-grow: 1;
+  width: 100%;
+  min-height: 100vh;
+  padding: 24px;
+  background-color: #ffffff;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* Greeting Card */
+.greeting-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #063561;
+  padding: 24px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+}
+
+.greeting-card img {
+  height: 96px;
+}
+
+/* Profile Upload */
+.profile-upload {
+  cursor: pointer;
+  margin-left: 1rem;
+}
+
+.profile-pic {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 0 0 3px #C0DAED, 0 4px 10px rgb(166, 203, 234);
+  
+}
+
+.profile-upload:hover .profile-pic {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px #5894BA, 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+/* Greeting Container */
+.greeting-container {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.greeting-container h2 {
+  font-family: 'Climate Crisis', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: #C0DAED;
+  cursor: pointer;
+}
+
+.current-datetime {
+  font-family: "Sirin Stencil", sans-serif;
+  margin-top: 0.5rem;
+  font-size: 1.5rem;
+  color: #5894BA;
+}
+
+.name-input {
+  font-family: "Montserrat Alternates", sans-serif;
+  color: #99b9cf;
+  font-size: 1rem;
+  padding: 0.5rem;
+  border: 1px solid #94a3b8;
+  border-radius: 0.5rem;
+}
+
+.save-name-btn {
+  font-family: 'Montserrat Alternates', sans-serif;
+  margin-left: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #5894BA;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+/* Stats Ring */
+.stats-ring-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.stat-ring {
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+}
+
+.stat-ring svg {
+  width: 100px;
+  height: 100px;
+}
+
+.stat-ring .bg {
+  fill: none;
+  stroke: #e5e7eb;
+  stroke-linecap: round;
+  stroke-width: 10;
+}
+
+.stat-ring .progress {
+  color: #4d7dd2;
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 282;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.stat-ring text {
+  font-family: "Montserrat Alternates", sans-serif;
+  font-size: 1.2rem;
+  fill: #111827;
+  font-weight: 600;
+}
+
+.stat-label {
+  font-family: 'Montserrat Alternates', sans-serif;
+  margin-top: 0.5rem;
+  font-weight: 500;
+  color: #031716;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .greeting-card {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .greeting-card img {
+    height: 80px;
+  }
+
+  .form-row {
+    flex-direction: column;
+  }
+
+  .form-row input,
+  .form-row button,
+  .form-select select {
+    width: 100%;
+  }
+
+  .routine-group li {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Dark mode */
+body.dark .main-content {
+  background-color: #092534;
+  color: #4d7dd2;
+}
+
+body.dark .greeting-card {
+  background-color: #063561;
+  color: #C1D7D5;
+}
+
+body.dark .current-datetime {
+  color: #627a8b;
+}
+
+body.dark .name-input {
+  background-color: #0800754b;
+  border: 1px solid #A7CBCB;
+  color: #C1D7D5;
+}
+
+body.dark .save-name-btn {
+  background-color: #A7CBCB;
+  color: #031716;
+}
+
+body.dark .stat-ring .bg {
+  stroke: #505865;
+}
+
+body.dark .stat-ring text {
+  fill: #C0DAED;
+}
+
+body.dark stat-label {
+  color: #C0DAED;
+}
+
+body,
+.main-content,
+.greeting-card,
+.routine-planner,
+.routine-group li,
+input,
+button {
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+
+
+
+
+

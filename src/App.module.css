@@ -1,0 +1,16 @@
+.appLight {
+  background-color: #ececec;
+  color: #0e1424;
+  min-height: 100vh;
+}
+
+.appDark {
+  background-color: #0e1424;
+  color: #ececec;
+  min-height: 100vh;
+}
+
+.main {
+  display: flex;
+  padding: 1rem;
+}
