@@ -72,7 +72,8 @@
 
 .nav-link.active,
 .nav-link:hover {
-  background-color: #f3f4f6;
+  color: #031716;
+  background-color: #ffffff;
 }
 
 /* ===== Mobile Header + Drawer ===== */

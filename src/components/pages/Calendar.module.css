@@ -20,8 +20,10 @@
 }
 
 .sidebar h2 {
+  font-family: 'Coiny', sans-serif;
+  font-size: 2rem;
   margin-bottom: 10px;
-  color: #333;
+  color: #151748;
   user-select: none;
 }
 
@@ -43,7 +45,7 @@
 }
 
 .viewToggle button.active {
-  background-color: #8a2be2;
+  background-color: #151748;
   color: #fff;
 }
 
@@ -87,7 +89,7 @@
 }
 
 .buttonRow button[type='submit'] {
-  background-color: #8a2be2;
+  background-color: #151748;
   color: white;
 }
 
