@@ -1,261 +1,245 @@
 import React, { useState, useEffect } from 'react';
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import format from 'date-fns/format';
+import parse from 'date-fns/parse';
+import startOfWeek from 'date-fns/startOfWeek';
+import getDay from 'date-fns/getDay';
+import addDays from 'date-fns/addDays';
+import addWeeks from 'date-fns/addWeeks';
+import addMonths from 'date-fns/addMonths';
+import isBefore from 'date-fns/isBefore';
+import enUS from 'date-fns/locale/en-US';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 import styles from './Calendar.module.css';
 
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const timeSlots = Array.from({ length: 21 }, (_, i) => {
-  const hour = 8 + Math.floor(i / 2);
-  const min = i % 2 === 0 ? '00' : '30';
-  return `${hour.toString().padStart(2, '0')}:${min}`;
-});
-const timeToNumber = (time) => {
-  const [hour, min] = time.split(':').map(Number);
-  return hour + min / 60;
-};
-const formatTime = (num) => {
-  const rounded = Math.round(num * 2) / 2; // snap to 30-min
-  const hour = Math.floor(rounded);
-  const min = (rounded % 1) * 60;
-  return `${hour.toString().padStart(2, '0')}:${min === 0 ? '00' : '30'}`;
-};
+const locales = { 'en-US': enUS };
+const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
-function ScheduledBlock({ event, hourHeight, onEdit, onResize, onDelete, onDrag }) {
-  const start = timeToNumber(event.start);
-  const end = timeToNumber(event.end);
-  const top = (start - 8) * hourHeight * 2;
-  const height = (end - start) * hourHeight * 2;
-
-  const handleResize = (e) => {
-    e.stopPropagation();
-    const startY = e.clientY;
-    const onMouseMove = (moveEvent) => {
-      const diff = moveEvent.clientY - startY;
-      const minutes = Math.round(diff / (hourHeight * 2) * 60);
-      const newEnd = timeToNumber(event.start) + minutes / 60;
-      if (newEnd > timeToNumber(event.start)) {
-        onResize(event.id, formatTime(newEnd));
-      }
-    };
-    const onMouseUp = () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-  };
-
-  const handleDragStart = (e) => {
-    e.dataTransfer.setData('text/plain', event.id);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  return (
-    <div
-      draggable
-      onDragStart={handleDragStart}
-      onClick={() => onEdit(event)}
-      className={styles.scheduledBlock}
-      style={{ top, height: Math.max(height, 20), backgroundColor: event.color || '#89CFF0' }}
-      title={`${event.title} (${event.start} - ${event.end})`}
-    >
-      <div className={styles.eventTitle}>{event.title}</div>
-      <button className={styles.deleteButton} onClick={(e) => { e.stopPropagation(); onDelete(event.id); }}>✕</button>
-      <div className={styles.resizeHandle} onMouseDown={handleResize} />
-    </div>
-  );
-}
-
-function DayColumn({ day, events, onEdit, onResize, onDelete, onDropTask }) {
-  const hourHeight = 20;
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const id = e.dataTransfer.getData('text/plain');
-    const rect = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const hour = 8 + y / (hourHeight * 2);
-    onDropTask(id, day, formatTime(hour));
-  };
-
-  const handleDragOver = (e) => e.preventDefault();
-
-  return (
-    <div className={styles.dayColumn} onDrop={handleDrop} onDragOver={handleDragOver}>
-      <div className={styles.dayHeader}>{day}</div>
-      <div className={styles.eventsContainer}>
-        {events.map((event) => (
-          <ScheduledBlock
-            key={event.id}
-            event={event}
-            hourHeight={hourHeight}
-            onEdit={onEdit}
-            onResize={onResize}
-            onDelete={onDelete}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TimeColumn() {
-  return (
-    <div className={styles.timeColumn}>
-      <div style={{ height: '30px' }} />
-      {timeSlots.map((time) => (
-        <div key={time} className={styles.timeSlot}>{time}</div>
-      ))}
-    </div>
-  );
-}
-
-export default function WeeklyPlanner() {
-  const [events, setEvents] = useState(() => {
-    const stored = localStorage.getItem('weeklyPlannerEvents');
-    return stored ? JSON.parse(stored) : [];
+const CalendarPage = () => {
+  const [events, setEvents] = useState([]);
+  const [view, setView] = useState('month');
+  const [showForm, setShowForm] = useState(false);
+  const [editingEventIndex, setEditingEventIndex] = useState(null);
+  const [formEvent, setFormEvent] = useState({
+    title: '',
+    start: null,
+    end: null,
+    color: '#8a2be2',
+    emoji: '',
+    repeat: 'none',
   });
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
+  useEffect(() => {
+    const saved = localStorage.getItem('calendarEvents');
+    if (saved) {
+      setEvents(JSON.parse(saved).map(e => ({
+        ...e,
+        start: new Date(e.start),
+        end: new Date(e.end),
+      })));
+    }
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('weeklyPlannerEvents', JSON.stringify(events));
+    localStorage.setItem('calendarEvents', JSON.stringify(events));
   }, [events]);
 
-  const handleSave = (task) => {
-    setEvents((prev) =>
-      prev.some((e) => e.id === task.id)
-        ? prev.map((e) => (e.id === task.id ? task : e))
-        : [...prev, task]
-    );
+  const handleSelectSlot = ({ start, end }) => {
+    setFormEvent({ title: '', start, end, color: '#8a2be2', emoji: '', repeat: 'none' });
+    setEditingEventIndex(null);
+    setShowForm(true);
   };
 
-  const handleResize = (id, newEnd) => {
-    setEvents((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, end: newEnd } : e))
-    );
+  const handleSelectEvent = (event) => {
+    const index = events.findIndex((e) => e === event);
+    setFormEvent({
+      ...event,
+      emoji: event.title.startsWith('🎉') ? '🎉' : '',
+      title: event.title.replace(/^.\s*/, ''),
+    });
+    setEditingEventIndex(index);
+    setShowForm(true);
   };
 
-  const handleDelete = (id) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
+  const generateRepeatingEvents = (event) => {
+    const occurrences = [];
+    const repeatUntil = addMonths(new Date(), 3);
+    let start = new Date(event.start);
+    let end = new Date(event.end);
+
+    while (isBefore(start, repeatUntil)) {
+      occurrences.push({ ...event, start: new Date(start), end: new Date(end) });
+
+      switch (event.repeat) {
+        case 'daily': start = addDays(start, 1); end = addDays(end, 1); break;
+        case 'weekly': start = addWeeks(start, 1); end = addWeeks(end, 1); break;
+        case 'monthly': start = addMonths(start, 1); end = addMonths(end, 1); break;
+        default: return occurrences;
+      }
+    }
+
+    return occurrences;
   };
 
-  const handleDropTask = (id, newDay, newStart) => {
-    setEvents((prev) =>
-      prev.map((e) => {
-        if (e.id === parseInt(id)) {
-          const duration = timeToNumber(e.end) - timeToNumber(e.start);
-          const newEnd = timeToNumber(newStart) + duration;
-          return {
-            ...e,
-            day: newDay,
-            start: newStart,
-            end: formatTime(newEnd),
-          };
-        }
-        return e;
-      })
-    );
+  const handleSave = (e) => {
+    e.preventDefault();
+    if (!formEvent.title || !formEvent.start || !formEvent.end) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const newEvent = {
+      ...formEvent,
+      title: `${formEvent.emoji ? formEvent.emoji + ' ' : ''}${formEvent.title}`,
+    };
+
+    if (editingEventIndex !== null) {
+      const updated = [...events];
+      updated[editingEventIndex] = newEvent;
+      setEvents(updated);
+    } else {
+      const newEvents = formEvent.repeat === 'none'
+        ? [newEvent]
+        : generateRepeatingEvents(newEvent);
+      setEvents([...events, ...newEvents]);
+    }
+
+    setFormEvent({ title: '', start: null, end: null, color: '#8a2be2', emoji: '', repeat: 'none' });
+    setEditingEventIndex(null);
+    setShowForm(false);
   };
 
-  const handleEdit = (task) => {
-    setEditingTask(task);
-    setModalOpen(true);
-  };
-
-  const handleAddClick = () => {
-    setEditingTask(null);
-    setModalOpen(true);
+  const handleDelete = () => {
+    if (editingEventIndex !== null && window.confirm('Delete this event?')) {
+      const updated = [...events];
+      updated.splice(editingEventIndex, 1);
+      setEvents(updated);
+      setFormEvent({ title: '', start: null, end: null, color: '#8a2be2', emoji: '', repeat: 'none' });
+      setEditingEventIndex(null);
+      setShowForm(false);
+    }
   };
 
   return (
     <div className={styles.wrapper}>
-      <div className={styles.legend}>
-        <span style={{ backgroundColor: '#89CFF0' }} /> Work
-        <span style={{ backgroundColor: '#FFC75F' }} /> Exercise
-        <span style={{ backgroundColor: '#FF6F91' }} /> Study
-      </div>
+      <aside className={styles.sidebar}>
+        <h2>My Calendar</h2>
+        <div className={styles.viewToggle}>
+          <button className={view === 'month' ? styles.active : ''} onClick={() => setView('month')}>Month</button>
+          <button className={view === 'week' ? styles.active : ''} onClick={() => setView('week')}>Week</button>
+        </div>
+      </aside>
 
-      <div className={styles.container}>
-        <TimeColumn />
-        {days.map((day) => (
-          <DayColumn
-            key={day}
-            day={day}
-            events={events.filter((e) => e.day === day)}
-            onEdit={handleEdit}
-            onResize={handleResize}
-            onDelete={handleDelete}
-            onDropTask={handleDropTask}
-          />
-        ))}
-      </div>
+      <main className={styles.container}>
+        <Calendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          selectable
+          onSelectSlot={handleSelectSlot}
+          onSelectEvent={handleSelectEvent}
+          defaultView={view}
+          view={view}
+          onView={(v) => setView(v)}
+          views={['month', 'week']}
+          style={{ height: '100vh' }}
+          eventPropGetter={(event) => ({
+            style: {
+              backgroundColor: event.color || '#8a2be2',
+              borderRadius: '8px',
+              color: 'white',
+              border: 'none',
+              paddingLeft: '6px',
+            },
+          })}
+        />
 
-      <button className={styles.addButton} onClick={handleAddClick} title="Add Task">+</button>
 
-      {modalOpen && (
-        <>
-          <div className={styles.modalOverlay} onClick={() => setModalOpen(false)} />
-          <div className={styles.modalContent}>
-            <h3>{editingTask ? 'Edit Task' : 'Add Task'}</h3>
-            <AddEditForm
-              task={editingTask}
-              onSave={handleSave}
-              onClose={() => setModalOpen(false)}
-            />
+        {showForm && (
+          <div className={styles.modalOverlay} onClick={() => setShowForm(false)}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <h3>{editingEventIndex !== null ? 'Edit Event' : 'Add Event'}</h3>
+              <form onSubmit={handleSave}>
+                <input
+                  type="text"
+                  placeholder="Event Title"
+                  value={formEvent.title}
+                  onChange={(e) => setFormEvent(prev => ({ ...prev, title: e.target.value }))}
+                  required
+                />
+
+                <label>
+                  Start:
+                  <input
+                    type="datetime-local"
+                    value={formEvent.start ? new Date(formEvent.start).toISOString().slice(0, 16) : ''}
+                    onChange={(e) => setFormEvent(prev => ({ ...prev, start: new Date(e.target.value) }))}
+                    required
+                  />
+                </label>
+
+                <label>
+                  End:
+                  <input
+                    type="datetime-local"
+                    value={formEvent.end ? new Date(formEvent.end).toISOString().slice(0, 16) : ''}
+                    onChange={(e) => setFormEvent(prev => ({ ...prev, end: new Date(e.target.value) }))}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Color:
+                  <input
+                    type="color"
+                    value={formEvent.color}
+                    onChange={(e) => setFormEvent(prev => ({ ...prev, color: e.target.value }))}
+                  />
+                </label>
+
+                <label>
+                  Emoji:
+                  <input
+                    type="text"
+                    maxLength={2}
+                    placeholder="e.g. 🎉"
+                    value={formEvent.emoji}
+                    onChange={(e) => setFormEvent(prev => ({ ...prev, emoji: e.target.value }))}
+                  />
+                </label>
+
+                <label>
+                  Repeat:
+                  <select
+                    value={formEvent.repeat}
+                    onChange={(e) => setFormEvent(prev => ({ ...prev, repeat: e.target.value }))}
+                  >
+                    <option value="none">None</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </label>
+
+                <div className={styles.buttonRow}>
+                  <button type="submit" style={{ backgroundColor: '#8a2be2', color: 'white' }}>
+                    {editingEventIndex !== null ? 'Update' : 'Add'}
+                  </button>
+                  {editingEventIndex !== null && (
+                    <button type="button" onClick={handleDelete} style={{ backgroundColor: '#ccc' }}>
+                      Delete
+                    </button>
+                  )}
+                  <button type="button" onClick={() => setShowForm(false)}>Cancel</button>
+                </div>
+              </form>
+            </div>
           </div>
-        </>
-      )}
+        )}
+      </main>
     </div>
   );
-}
+};
 
-function AddEditForm({ task, onSave, onClose }) {
-  const [title, setTitle] = useState(task?.title || '');
-  const [day, setDay] = useState(task?.day || 'Monday');
-  const [start, setStart] = useState(task?.start || '09:00');
-  const [end, setEnd] = useState(task?.end || '10:00');
-  const [color, setColor] = useState(task?.color || '#89CFF0');
-
-  useEffect(() => {
-    if (task) {
-      setTitle(task.title);
-      setDay(task.day);
-      setStart(task.start);
-      setEnd(task.end);
-      setColor(task.color);
-    }
-  }, [task]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (timeToNumber(end) <= timeToNumber(start)) return alert('End must be after start');
-
-    onSave({
-      id: task?.id ?? Date.now(),
-      title,
-      day,
-      start,
-      end,
-      color,
-    });
-    onClose();
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className={styles.modalForm}>
-      <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-      <select value={day} onChange={(e) => setDay(e.target.value)}>
-        {days.map((d) => (
-          <option key={d}>{d}</option>
-        ))}
-      </select>
-      <input type="time" value={start} onChange={(e) => setStart(e.target.value)} required />
-      <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} required />
-      <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-      <div className={styles.buttonRow}>
-        <button type="submit">Save</button>
-        <button type="button" onClick={onClose}>Cancel</button>
-      </div>
-    </form>
-  );
-}
+export default CalendarPage;

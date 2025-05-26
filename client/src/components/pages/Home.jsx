@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './Home.css';
+import RoutinePlanner from '../RoutinePlanner/RoutinePlanner'; 
 
+function getGreeting(hour) {
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
 
 function StatRing({ title, value, max = 100, color, to }) {
   const percentage = Math.min((value / max) * 100, 100);
-  const strokeDashoffset = 282 - (282 * percentage) / 100;
+  const strokeDashoffset = 282 - (282 * percentage) / 100; 
+
 
   return (
     <Link to={to} className="stat-ring">
@@ -36,34 +43,26 @@ export function HomeStats() {
     totalTasks: 0,
     habitsCompletedToday: 0,
     totalHabitsToday: 0,
-    currentStreak: 0,
-    longestStreak: 0,
   });
 
   useEffect(() => {
     const tasks = JSON.parse(localStorage.getItem('todoTasks') || '[]');
     const completedTasks = tasks.filter(t => t.completed).length;
 
-    const habitData = JSON.parse(localStorage.getItem('weeklyHabits') || '{}');
-    const habits = habitData.habits || [];
-
-    const todayIndex = new Date().getDay();
-    const correctedDayIndex = todayIndex === 0 ? 6 : todayIndex - 1;
-
+    const habits = JSON.parse(localStorage.getItem('habits') || '[]');
+    const todayKey = new Date().toISOString().split('T')[0];
     const habitsCompletedToday = habits.reduce(
-      (count, habit) => count + (habit.days?.[correctedDayIndex] ? 1 : 0),
+      (count, habit) => count + (habit.completedDates.includes(todayKey) ? 1 : 0),
       0
     );
 
-    const streak = JSON.parse(localStorage.getItem('habitStreak') || '{}');
+    
 
     setStats({
       tasksCompleted: completedTasks,
       totalTasks: tasks.length,
       habitsCompletedToday,
       totalHabitsToday: habits.length,
-      currentStreak: streak.current || 0,
-      longestStreak: streak.longest || 0,
     });
   }, []);
 
@@ -72,29 +71,17 @@ export function HomeStats() {
       title: 'Tasks Done',
       value: stats.tasksCompleted,
       max: stats.totalTasks || 1,
-      color: '#facc15',
+      color: '#d2467f',
       to: '/tasks-and-habits',
     },
     {
       title: 'Habits Today',
       value: stats.habitsCompletedToday,
       max: stats.totalHabitsToday || 1,
-      color: '#34d399',
+      color: '#d2467f',
       to: '/habit-tracker',
     },
-    {
-      title: 'Current Streak',
-      value: stats.currentStreak,
-      color: '#ec4899',
-      to: '/habit-tracker',
-    },
-    {
-      title: 'Longest Streak',
-      value: stats.longestStreak,
-      color: '#8b5cf6',
-      to: '/habit-tracker',
-    },
-  ];
+  ]; // <-- Close the array here
 
   return (
     <div className="stats-ring-grid">
@@ -107,10 +94,16 @@ export function HomeStats() {
 
 export default function Home() {
   const [profilePic, setProfilePic] = useState(null);
-  const [routineGroups, setRoutineGroups] = useState({});
-  const [groupName, setGroupName] = useState('');
-  const [newRoutine, setNewRoutine] = useState('');
-  const [selectedGroup, setSelectedGroup] = useState('');
+  const [userName, setUserName] = useState(localStorage.getItem('userName') || '');
+  const [editingName, setEditingName] = useState(!userName);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const storedImage = localStorage.getItem('profilePic');
@@ -131,35 +124,52 @@ export default function Home() {
     }
   };
 
-  const handleAddGroup = () => {
-    if (groupName.trim() && !routineGroups[groupName.trim()]) {
-      setRoutineGroups({ ...routineGroups, [groupName.trim()]: [] });
-      setGroupName('');
-      setSelectedGroup(groupName.trim());
-    }
-  };
-
-  const handleAddRoutine = () => {
-    if (selectedGroup && newRoutine.trim()) {
-      const updatedGroup = [...(routineGroups[selectedGroup] || []), newRoutine.trim()];
-      setRoutineGroups({ ...routineGroups, [selectedGroup]: updatedGroup });
-      setNewRoutine('');
-    }
-  };
-
-  const handleDeleteRoutine = (group, index) => {
-    const updated = routineGroups[group].filter((_, i) => i !== index);
-    setRoutineGroups({ ...routineGroups, [group]: updated });
-  };
-
+  
   return (
     <div className="home-container">
       <div className="main-content">
         <div className="greeting-card">
-          <div>
-            <h2>Hi there 👋</h2>
-            <p>Set up your day and track your productivity!</p>
+          <div className="greeting-container">
+            {editingName ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  localStorage.setItem('userName', userName.trim());
+                  setEditingName(false);
+                }}
+              >
+                <input
+                  className="name-input"
+                  type="text"
+                  placeholder="Enter your name"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  required
+                />
+                <button className="save-name-btn" type="submit">
+                  Save
+                </button>
+              </form>
+            ) : (
+              <h2 onClick={() => setEditingName(true)}>
+                {getGreeting(currentTime.getHours())}, {userName}!
+              </h2>
+            )}
+            <p className="current-datetime">
+              {currentTime.toLocaleDateString(undefined, {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+              })}
+              ,{' '}
+              {currentTime.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              })}
+            </p>
           </div>
+
           <div className="profile-upload">
             <label htmlFor="profilePicInput">
               <img
@@ -180,57 +190,9 @@ export default function Home() {
 
         <HomeStats />
 
-        <div className="routine-planner">
-          <h3>Your Daily Routine</h3>
 
-          <div className="form-row">
-            <input
-              type="text"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              placeholder="Add routine group (e.g., Morning, Workout)..."
-            />
-            <button onClick={handleAddGroup}>Add Group</button>
-          </div>
-
-          <div className="form-select">
-            <select
-              value={selectedGroup}
-              onChange={(e) => setSelectedGroup(e.target.value)}
-            >
-              <option value="">Select a group</option>
-              {Object.keys(routineGroups).map((group, i) => (
-                <option key={i} value={group}>{group}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-row">
-            <input
-              type="text"
-              value={newRoutine}
-              onChange={(e) => setNewRoutine(e.target.value)}
-              placeholder={`Add new routine to ${selectedGroup || 'selected group'}...`}
-            />
-            <button onClick={handleAddRoutine} disabled={!selectedGroup}>
-              Add Routine
-            </button>
-          </div>
-
-          {Object.keys(routineGroups).map((group, i) => (
-            <div key={i} className="routine-group">
-              <h4>{group}</h4>
-              <ul>
-                {routineGroups[group].map((routine, idx) => (
-                  <li key={idx}>
-                    <span>{routine}</span>
-                    <button onClick={() => handleDeleteRoutine(group, idx)}>Delete</button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+        {/* Render the reusable RoutinePlanner component */}
+        <RoutinePlanner />
       </div>
     </div>
   );

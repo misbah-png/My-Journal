@@ -1,7 +1,6 @@
-// Register.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styles from './Login.module.css'; // You can reuse the styles
+import styles from './Login.module.css';
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -12,7 +11,6 @@ export default function Register() {
   const handleRegister = (e) => {
     e.preventDefault();
 
-    // Basic validation example: check if email is already registered
     const existingUser = JSON.parse(localStorage.getItem('user'));
     if (existingUser && existingUser.email === email) {
       setError('User already exists. Please login.');
@@ -24,12 +22,12 @@ export default function Register() {
       return;
     }
 
-    // Save new user to localStorage
-    localStorage.setItem('user', JSON.stringify({ email, password }));
-    // Optionally, mark user as logged in right away
-    localStorage.setItem('loggedIn', 'true');
+    const newUser = { email, password };
 
-    // Redirect to home or login page
+    localStorage.setItem('user', JSON.stringify(newUser));
+    localStorage.setItem('loggedIn', 'true');
+    localStorage.setItem('currentUser', JSON.stringify({ email }));
+
     navigate('/');
   };
 

@@ -3,7 +3,7 @@ import { FaHome, FaTasks, FaCalendarAlt, FaBars } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
 import './Navbar.css';
 
-export default function Navbar() {
+export default function Navbar({ isDarkMode, setIsDarkMode }) {
   const { pathname } = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -15,7 +15,7 @@ export default function Navbar() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const isActive = (path) => pathname === path ? 'nav-link active' : 'nav-link';
+  const isActive = (path) => (pathname === path ? 'nav-link active' : 'nav-link');
 
   const handleLogout = () => {
     localStorage.removeItem('loggedIn');
@@ -28,7 +28,12 @@ export default function Navbar() {
       {isMobile && (
         <>
           <header className="top-header">
-            <span className="app-title">My Journal</span>
+            <img
+              src="/pace_logo-removebg-preview.png"
+              alt="Logo"
+              className="logo-img"
+              style={{ height: '40px' }}
+            />
             <button className="menu-toggle" onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
               <FaBars />
             </button>
@@ -44,6 +49,7 @@ export default function Navbar() {
             <Link to="/calendar" className={isActive('/calendar')} onClick={() => setIsDrawerOpen(false)}>
               <FaCalendarAlt /> <span>Calendar</span>
             </Link>
+            
             <button onClick={handleLogout} className="logout-button">Logout</button>
           </nav>
 
@@ -55,9 +61,15 @@ export default function Navbar() {
       {!isMobile && (
         <nav className={`sidebar-desktop ${isCollapsed ? 'collapsed' : ''}`}>
           <div className="brand" onClick={() => setIsCollapsed(!isCollapsed)}>
-            <span role="img" aria-label="logo">📝</span>
+            <img
+              src="assets/images/pace_logo-removebg-preview.png"
+              alt="Logo"
+              className="logo-img"
+              style={{ height: '40px' }}
+            />
             {!isCollapsed && <h1>My Journal</h1>}
           </div>
+
           <div className="nav-links">
             <Link to="/" className={isActive('/')}>
               <FaHome />
@@ -72,10 +84,16 @@ export default function Navbar() {
               {!isCollapsed && <span>Calendar</span>}
             </Link>
           </div>
-          <button onClick={handleLogout} className="logout-button">Logout</button>
+
+          <div className="sidebar-bottom">
+            <label className="dark-toggle">
+              <input type="checkbox" checked={isDarkMode} onChange={() => setIsDarkMode(!isDarkMode)} />
+              <span className="slider" />
+            </label>
+            <button onClick={handleLogout} className="logout-button">Logout</button>
+          </div>
         </nav>
       )}
     </>
   );
 }
-

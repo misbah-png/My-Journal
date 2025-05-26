@@ -41,3 +41,22 @@
 .read-the-docs {
   color: #888;
 }
+
+.theme-toggle-btn {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background-color: #1c3966;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+.app-container {
+  min-height: 100vh;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
