@@ -1,0 +1,76 @@
+/* Container */
+.tasks-container {
+  padding: 24px;
+  background-color: #c7e9fc;
+  min-height: 100vh;
+  box-sizing: border-box;
+  border-radius: 20px;
+}
+
+/* Header */
+.header {
+  font-family: 'Coiny', sans-serif;
+  font-size: 3rem;
+  font-weight: bold;
+  color: #151748;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* Grid Layout */
+.grid-container {
+  
+  display: grid;
+  grid-template-columns: 1fr; /* always 1 column */
+  gap: 24px;
+}
+
+
+
+/* Card */
+.card {
+  font-family: 'M';
+  background-color: #f9f9f9;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Card Title */
+.card-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #151748;
+  margin-bottom: 16px;
+}
+
+@media screen and (min-width: 768px) {
+  .grid-container {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* responsive columns */
+  }
+  
+}
+.tasks-container {
+  padding: 16px;
+  background-color: #c7e9fc;
+  min-height: 100vh;
+  box-sizing: border-box;
+  overflow-y: auto; /* allow vertical scrolling */
+}
+
+/* Header */
+.header {
+  font-size: 34px;
+  font-weight: bold;
+  color: #151748;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+/* Grid Layout */
+.grid-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  
+}
