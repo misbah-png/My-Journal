@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import styles from './Login.module.css';
 
-export default function Login() {
+export default function Login({ setIsLoggedIn }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If already logged in, redirect to home
     if (localStorage.getItem('loggedIn') === 'true') {
       navigate('/');
     }
@@ -26,6 +25,7 @@ export default function Login() {
     ) {
       localStorage.setItem('loggedIn', 'true');
       localStorage.setItem('currentUser', JSON.stringify({ email }));
+      setIsLoggedIn(true);
       navigate('/');
     } else {
       setError('Invalid credentials');
@@ -55,9 +55,8 @@ export default function Login() {
       </form>
       <p className={styles.p}>
         Don&apos;t have an account?{' '}
-        <a className={styles.a} href="/register">Register</a>
+        <Link className={styles.a} to="/register">Register</Link>
       </p>
     </div>
   );
 }
-
