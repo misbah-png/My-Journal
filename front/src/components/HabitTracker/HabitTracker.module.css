@@ -1,196 +1,221 @@
 .container {
-  max-width: 900px;
+  max-width: 800px;
   margin: 2rem auto;
-  padding: 1.5rem 2rem;
+  padding: 1.5rem;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #222;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-h2 {
-  margin-bottom: 1.5rem;
+.heading {
+  text-align: center;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
   font-weight: 700;
-  font-size: 1.9rem;
-  color: #111;
+}
+
+.error {
+  color: red;
+  margin-bottom: 1rem;
   text-align: center;
 }
 
-.controls {
+.habitInput {
   display: flex;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.habitInput input {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1.5px solid #ccc;
+}
+
+.habitInput button {
+  background: #4a90e2;
+  color: white;
+  font-weight: bold;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.toggleButtons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
+}
+
+.toggleButtons button {
+  padding: 0.5rem 1rem;
+  background: #eee;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.habitList {
+  list-style: none;
+  padding: 0;
+}
+
+.habitItem {
+  margin-bottom: 1.5rem;
+  background: #f9f9f9;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.habitHeader {
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
+  margin-bottom: 0.5rem;
 }
 
-.controls label {
-  font-weight: 600;
-  font-size: 1rem;
-  color: #444;
-}
-
-.controls input[type="date"] {
-  padding: 0.4rem 0.6rem;
-  font-size: 1rem;
-  border: 1.5px solid #ddd;
-  border-radius: 6px;
-  background-color: #fafafa;
-  transition: border-color 0.3s ease;
-}
-
-.controls input[type="date"]:focus {
-  border-color: #4a90e2;
-  outline: none;
-  background-color: #fff;
-}
-
-.add {
-  display: flex;
-  gap: 0.7rem;
-  flex: 1 1 300px;
-}
-
-.add input[type="text"] {
-  flex-grow: 1;
-  padding: 0.55rem 1rem;
-  font-size: 1rem;
-  border-radius: 8px;
-  border: 1.5px solid #ccc;
-  transition: border-color 0.3s ease;
-}
-
-.add input[type="text"]:focus {
-  border-color: #4a90e2;
-  outline: none;
-  background-color: #fff;
-}
-
-.add button {
-  background-color: #4a90e2;
-  border: none;
-  padding: 0.55rem 1.3rem;
-  border-radius: 8px;
-  color: white;
-  font-weight: 600;
-  font-size: 1rem;
-  box-shadow: 0 2px 5px rgb(74 144 226 / 0.4);
-  transition: background-color 0.3s ease;
-}
-
-.add button:hover {
-  background-color: #357ABD;
-  cursor: pointer;
-}
-
-.table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 10px;
-}
-
-th, td {
-  text-align: center;
-  padding: 0.8rem 0.6rem;
-  vertical-align: middle;
-  font-size: 0.95rem;
-}
-
-th {
-  background-color: #f3f6fb;
-  font-weight: 700;
-  color: #555;
-  border-bottom: 2px solid #ddd;
-  border-radius: 8px 8px 0 0;
-  user-select: none;
-}
-
-tbody tr {
-  background-color: #fafafa;
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
-}
-
-tbody tr:hover {
-  background-color: #e8f0fe;
-}
-
-td {
-  border: none;
-}
-
-select {
-  padding: 0.3rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background-color: white;
-  font-size: 0.9rem;
-  transition: border-color 0.3s ease;
-}
-
-select:focus {
-  border-color: #4a90e2;
-  outline: none;
-}
-
-input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: #4a90e2;
-}
-
-button.delete-btn {
-  background: transparent;
+.deleteBtn {
+  background: none;
   border: none;
   color: #e14c4c;
-  font-weight: 700;
-  font-size: 1.3rem;
+  font-weight: bold;
   cursor: pointer;
-  transition: color 0.3s ease;
-  padding: 0;
-  line-height: 1;
 }
 
-button.delete-btn:hover {
-  color: #a63636;
+.dayBoxes {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.analytics {
-  margin-top: 2rem;
-  background-color: #f3f6fb;
-  padding: 1rem 1.5rem;
-  border-radius: 10px;
-  box-shadow: inset 0 0 6px rgb(0 0 0 / 0.05);
-  font-size: 1rem;
-  font-weight: 600;
-  color: #333;
-  text-align: center;
+.dayColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.tableWrapper {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+.dayLabel {
+  font-size: 0.8rem;
+  margin-bottom: 4px;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 600px; /* or set based on your columns */
+.dayBox {
+  width: 28px;
+  height: 28px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
-@media (max-width: 480px) {
-  .table th,
-  .table td {
-    padding: 4px 6px;
-    font-size: 12px;
+.completed {
+  background: #7C3AED !important;
+}
+
+.incomplete {
+  background: #E0E7FF !important;
+}
+
+.monthGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 0.5rem;
+}
+
+.heatbox {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+}
+
+/* Responsive layout */
+@media (max-width: 600px) {
+  .habitInput {
+    flex-direction: column;
+  }
+
+  .toggleButtons {
+    justify-content: center;
+  }
+
+  .dayBoxes {
+    justify-content: center;
+  }
+
+  .dayBox {
+    width: 24px;
+    height: 24px;
+  }
+
+  .heatbox {
+    width: 20px;
+    height: 20px;
   }
 }
 
+.weekNav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
 
+.weekNav button {
+  background: #eee;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
 
+.weekLabel {
+  font-weight: bold;
+  color: #333;
+}
+
+.monthNav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.monthNav button {
+  background: #eee;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.monthLabel {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.monthGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 0.5rem;
+}
+
+.heatbox {
+  width: 32px;
+  height: 32px;
+  text-align: center;
+  line-height: 32px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
 
 

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../firebase';
 import './Home.css';
 import RoutinePlanner from '../RoutinePlanner/RoutinePlanner'; 
 
@@ -46,17 +48,24 @@ export function HomeStats() {
   });
 
   useEffect(() => {
-    const tasks = JSON.parse(localStorage.getItem('todoTasks') || '[]');
+  const fetchStats = async () => {
+    const todayKey = new Date().toISOString().split('T')[0];
+    const userId = "demoUser"; // Replace with your auth user ID when ready
+
+    // Tasks
+    const tasksQuery = query(collection(db, 'todoTasks'), where('userId', '==', userId));
+    const tasksSnapshot = await getDocs(tasksQuery);
+    const tasks = tasksSnapshot.docs.map(doc => doc.data());
     const completedTasks = tasks.filter(t => t.completed).length;
 
-    const habits = JSON.parse(localStorage.getItem('habits') || '[]');
-    const todayKey = new Date().toISOString().split('T')[0];
+    // Habits
+    const habitsQuery = query(collection(db, 'habits'), where('userId', '==', userId));
+    const habitsSnapshot = await getDocs(habitsQuery);
+    const habits = habitsSnapshot.docs.map(doc => doc.data());
     const habitsCompletedToday = habits.reduce(
-      (count, habit) => count + (habit.completedDates.includes(todayKey) ? 1 : 0),
+      (count, habit) => count + (habit.completedDates?.includes(todayKey) ? 1 : 0),
       0
     );
-
-    
 
     setStats({
       tasksCompleted: completedTasks,
@@ -64,7 +73,11 @@ export function HomeStats() {
       habitsCompletedToday,
       totalHabitsToday: habits.length,
     });
-  }, []);
+  };
+
+  fetchStats();
+}, []);
+
 
   const cards = [
     {

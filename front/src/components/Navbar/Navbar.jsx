@@ -1,13 +1,29 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { signOut } from "firebase/auth";
+import { auth } from '../../firebase';
 import { FaHome, FaTasks, FaCalendarAlt, FaBars } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
-import logo from '../../assets/images/logo.png';
+import logo from '../../assets/images/pace logo.svg';
+import lightLogo from '../../assets/images/lightLogo.svg';
 import './Navbar.css';
 
 export default function Navbar({ isDarkMode, setIsDarkMode }) {
   const { pathname } = useLocation();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); 
+      localStorage.removeItem('loggedIn');
+      navigate('/login'); 
+    } catch (error) {
+      console.error("Logout failed:", error);
+      
+    }
+  };
 
   useEffect(() => {
     let timeoutId;
@@ -30,10 +46,7 @@ export default function Navbar({ isDarkMode, setIsDarkMode }) {
 
   const isActive = (path) => (pathname === path ? 'nav-link active' : 'nav-link');
 
-  const handleLogout = () => {
-    localStorage.removeItem('loggedIn');
-    window.location.href = '/login';
-  };
+  
 
   return (
     <>
@@ -96,14 +109,14 @@ export default function Navbar({ isDarkMode, setIsDarkMode }) {
         <nav className="sidebar-desktop">
           <div className="brand">
             <img
-              src={logo}
+              src={lightLogo}
               alt="Logo"
               className="logo-img"
               style={{ height: '40px' }}
             />
 
-            <h1 className="brand-name">Task Manager</h1>
             
+           
           </div>
 
           <div className="nav-links">
@@ -122,14 +135,6 @@ export default function Navbar({ isDarkMode, setIsDarkMode }) {
           </div>
 
           <div className="sidebar-bottom">
-            <label className="dark-toggle">
-              <input
-                type="checkbox"
-                checked={isDarkMode}
-                onChange={() => setIsDarkMode(!isDarkMode)}
-              />
-              <span className="slider" />
-            </label>
             <button onClick={handleLogout} className="logout-button">
               Logout
             </button>

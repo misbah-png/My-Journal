@@ -9,6 +9,14 @@ import addWeeks from 'date-fns/addWeeks';
 import addMonths from 'date-fns/addMonths';
 import isBefore from 'date-fns/isBefore';
 import enUS from 'date-fns/locale/en-US';
+import { db } from '../../firebase'; 
+import {
+  collection,
+  getDocs,
+  setDoc,
+  doc,
+  deleteDoc,
+} from 'firebase/firestore';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import styles from './Calendar.module.css';
 
@@ -30,19 +38,18 @@ const CalendarPage = () => {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('calendarEvents');
-    if (saved) {
-      setEvents(JSON.parse(saved).map(e => ({
-        ...e,
-        start: new Date(e.start),
-        end: new Date(e.end),
-      })));
-    }
+    const loadEvents = async () => {
+      const snapshot = await getDocs(collection(db, 'calendarEvents'));
+      const loadedEvents = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        start: new Date(doc.data().start),
+        end: new Date(doc.data().end),
+      }));
+      setEvents(loadedEvents);
+    };
+    loadEvents();
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('calendarEvents', JSON.stringify(events));
-  }, [events]);
 
   const handleSelectSlot = ({ start, end }) => {
     setFormEvent({ title: '', start, end, color: '#8a2be2', emoji: '', repeat: 'none' });
@@ -51,7 +58,7 @@ const CalendarPage = () => {
   };
 
   const handleSelectEvent = (event) => {
-    const index = events.findIndex((e) => e === event);
+    const index = events.findIndex((e) => e.id === event.id);
     setFormEvent({
       ...event,
       emoji: event.title.startsWith('🎉') ? '🎉' : '',
@@ -81,7 +88,7 @@ const CalendarPage = () => {
     return occurrences;
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!formEvent.title || !formEvent.start || !formEvent.end) {
       alert('Please fill in all required fields');
@@ -91,17 +98,33 @@ const CalendarPage = () => {
     const newEvent = {
       ...formEvent,
       title: `${formEvent.emoji ? formEvent.emoji + ' ' : ''}${formEvent.title}`,
+      start: formEvent.start.toISOString(),
+      end: formEvent.end.toISOString(),
     };
 
     if (editingEventIndex !== null) {
+      const eventId = events[editingEventIndex].id;
+      await setDoc(doc(db, 'calendarEvents', eventId), newEvent);
       const updated = [...events];
-      updated[editingEventIndex] = newEvent;
+      updated[editingEventIndex] = { ...newEvent, id: eventId };
       setEvents(updated);
     } else {
       const newEvents = formEvent.repeat === 'none'
         ? [newEvent]
-        : generateRepeatingEvents(newEvent);
-      setEvents([...events, ...newEvents]);
+        : generateRepeatingEvents(formEvent).map(e => ({
+            ...e,
+            title: `${formEvent.emoji ? formEvent.emoji + ' ' : ''}${formEvent.title}`,
+            start: e.start.toISOString(),
+            end: e.end.toISOString(),
+          }));
+
+      const savedEvents = [];
+      for (const event of newEvents) {
+        const id = crypto.randomUUID();
+        await setDoc(doc(db, 'calendarEvents', id), event);
+        savedEvents.push({ ...event, id });
+      }
+      setEvents([...events, ...savedEvents]);
     }
 
     setFormEvent({ title: '', start: null, end: null, color: '#8a2be2', emoji: '', repeat: 'none' });
@@ -109,10 +132,11 @@ const CalendarPage = () => {
     setShowForm(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (editingEventIndex !== null && window.confirm('Delete this event?')) {
       const updated = [...events];
-      updated.splice(editingEventIndex, 1);
+      const [deletedEvent] = updated.splice(editingEventIndex, 1);
+      await deleteDoc(doc(db, 'calendarEvents', deletedEvent.id));
       setEvents(updated);
       setFormEvent({ title: '', start: null, end: null, color: '#8a2be2', emoji: '', repeat: 'none' });
       setEditingEventIndex(null);
@@ -155,7 +179,6 @@ const CalendarPage = () => {
           })}
         />
 
-
         {showForm && (
           <div className={styles.modalOverlay} onClick={() => setShowForm(false)}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -168,7 +191,6 @@ const CalendarPage = () => {
                   onChange={(e) => setFormEvent(prev => ({ ...prev, title: e.target.value }))}
                   required
                 />
-
                 <label>
                   Start:
                   <input
@@ -178,7 +200,6 @@ const CalendarPage = () => {
                     required
                   />
                 </label>
-
                 <label>
                   End:
                   <input
@@ -188,7 +209,6 @@ const CalendarPage = () => {
                     required
                   />
                 </label>
-
                 <label>
                   Color:
                   <input
@@ -197,18 +217,7 @@ const CalendarPage = () => {
                     onChange={(e) => setFormEvent(prev => ({ ...prev, color: e.target.value }))}
                   />
                 </label>
-
-                <label>
-                  Emoji:
-                  <input
-                    type="text"
-                    maxLength={2}
-                    placeholder="e.g. 🎉"
-                    value={formEvent.emoji}
-                    onChange={(e) => setFormEvent(prev => ({ ...prev, emoji: e.target.value }))}
-                  />
-                </label>
-
+                
                 <label>
                   Repeat:
                   <select

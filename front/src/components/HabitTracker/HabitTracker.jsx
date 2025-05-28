@@ -1,306 +1,261 @@
 import { useState, useEffect } from 'react';
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from 'firebase/firestore';
+import { db } from '../../firebase';
 import styles from './HabitTracker.module.css';
 
-const getTodayKey = () => {
+const getTodayKey = () => new Date().toISOString().split('T')[0];
+
+const getWeekDates = (weekOffset = 0) => {
   const today = new Date();
-  return today.toISOString().split('T')[0];
-};
+  const current = new Date();
+  current.setDate(today.getDate() + weekOffset * 7);
 
-const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayIndex = current.getDay(); // 0 (Sun) - 6 (Sat)
+  const start = new Date(current);
+  start.setDate(current.getDate() - dayIndex);
 
-// Helper to get the start of week (Monday) date for a given selectedDate
-const getWeekDates = (selectedDate) => {
-  const date = new Date(selectedDate);
-  const day = date.getDay();
-  const isoDay = day === 0 ? 7 : day; // Sunday = 7
-  const monday = new Date(date);
-  monday.setDate(date.getDate() - (isoDay - 1));
-
-  return [...Array(7)].map((_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return d.toISOString().split('T')[0];
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    return {
+      key: date.toISOString().split('T')[0],
+      label: date.toLocaleDateString(undefined, { weekday: 'short' }),
+      fullLabel: date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+    };
   });
 };
 
-// New: ProgressRing component for circular analytics visualization
-function ProgressRing({ radius, stroke, progress }) {
-  const normalizedRadius = radius - stroke * 2;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
+const generateMonthCompletion = (habits, offset = 0) => {
+  const today = new Date();
+  const baseDate = new Date(today.getFullYear(), today.getMonth() + offset, 1);
 
-  return (
-    <svg
-      height={radius * 2}
-      width={radius * 2}
-      style={{ transform: 'rotate(-90deg)' }}
-    >
-      <circle
-        stroke="#ddd"
-        fill="transparent"
-        strokeWidth={stroke}
-        r={normalizedRadius}
-        cx={radius}
-        cy={radius}
-      />
-      <circle
-        stroke="#7e22ce"
-        fill="transparent"
-        strokeWidth={stroke}
-        strokeDasharray={`${circumference} ${circumference}`}
-        strokeDashoffset={strokeDashoffset}
-        r={normalizedRadius}
-        cx={radius}
-        cy={radius}
-        style={{ transition: 'stroke-dashoffset 0.35s ease' }}
-      />
-      <text
-        x="50%"
-        y="50%"
-        dominantBaseline="middle"
-        textAnchor="middle"
-        fontSize="1.25rem"
-        fill="#7e22ce"
-        fontWeight="bold"
-      >
-        {progress}%
-      </text>
-    </svg>
-  );
-}
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  return Array.from({ length: daysInMonth }, (_, i) => {
+    const date = new Date(year, month, i + 1);
+    const key = date.toISOString().split('T')[0];
+    const allCompleted = habits.length > 0 && habits.every(habit => habit.history?.[key]);
+    return {
+      key,
+      completed: allCompleted,
+      label: date.getDate(),
+    };
+  });
+};
+
+
 
 export default function HabitTracker() {
   const [habits, setHabits] = useState([]);
-  const [newHabit, setNewHabit] = useState('');
-  const [selectedDate, setSelectedDate] = useState(getTodayKey());
-  const [analytics, setAnalytics] = useState({ completed: 0, total: 0 });
-  const [editingIndex, setEditingIndex] = useState(null);
-  const [editingName, setEditingName] = useState('');
+  const [newHabitName, setNewHabitName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [view, setView] = useState('week');
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
+
+  const weekDates = getWeekDates(weekOffset);
+  const habitsCollection = collection(db, 'habits');
+
+  const fetchHabits = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const snapshot = await getDocs(habitsCollection);
+      const loaded = [];
+      snapshot.forEach((doc) => {
+        loaded.push({ id: doc.id, ...doc.data() });
+      });
+      setHabits(loaded);
+    } catch (err) {
+      setError('Failed to load habits.');
+      console.error(err);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('habits')) || [];
-    setHabits(stored);
+    fetchHabits();
+    // eslint-disable-next-line
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('habits', JSON.stringify(habits));
-    updateAnalytics();
-  }, [habits, selectedDate]);
-
-  const updateAnalytics = () => {
-    const total = habits.length;
-    if (total === 0) {
-      setAnalytics({ completed: 0, total: 0 });
-      return;
-    }
-    const completed = habits.reduce((count, habit) => {
-      return count + (habit.completedDates.includes(selectedDate) ? 1 : 0);
-    }, 0);
-    setAnalytics({ completed, total });
-  };
-
-
-  const addHabit = () => {
-    if (!newHabit.trim()) return;
-    const newEntry = {
-      name: newHabit.trim(),
-      difficulty: 'medium',
-      priority: 'normal',
-      completedDates: [],
-    };
-    setHabits([...habits, newEntry]);
-    setNewHabit('');
-  };
-
-  const deleteHabit = (habitIndex) => {
-    const updated = [...habits];
-    updated.splice(habitIndex, 1);
-    setHabits(updated);
-  };
-
-  const startEditing = (index) => {
-    setEditingIndex(index);
-    setEditingName(habits[index].name);
-  };
-
-  const cancelEditing = () => {
-    setEditingIndex(null);
-    setEditingName('');
-  };
-
-  const saveEditing = () => {
-    if (!editingName.trim()) return; // prevent empty names
-    const updated = [...habits];
-    updated[editingIndex].name = editingName.trim();
-    setHabits(updated);
-    cancelEditing();
-  };
-
-  const handleEditingKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      saveEditing();
-    } else if (e.key === 'Escape') {
-      cancelEditing();
+  const addHabit = async () => {
+    if (!newHabitName.trim()) return;
+    try {
+      await addDoc(habitsCollection, {
+        name: newHabitName.trim(),
+        history: {},
+      });
+      setNewHabitName('');
+      fetchHabits();
+    } catch (err) {
+      setError('Failed to add habit.');
+      console.error(err);
     }
   };
 
-  const toggleDay = (habitIndex, dateStr) => {
-    const updated = [...habits];
-    const habit = updated[habitIndex];
-    const idx = habit.completedDates.indexOf(dateStr);
-    if (idx >= 0) {
-      habit.completedDates.splice(idx, 1);
-    } else {
-      habit.completedDates.push(dateStr);
+  const toggleHabitDay = async (habit, dayKey) => {
+    try {
+      const habitRef = doc(db, 'habits', habit.id);
+      const updatedHistory = { ...(habit.history || {}) };
+      updatedHistory[dayKey] = !updatedHistory[dayKey];
+      await updateDoc(habitRef, { history: updatedHistory });
+      fetchHabits();
+    } catch (err) {
+      setError('Failed to update habit.');
+      console.error(err);
     }
-    setHabits(updated);
   };
 
-  const handleDifficultyChange = (habitIndex, newDifficulty) => {
-    const updated = [...habits];
-    updated[habitIndex].difficulty = newDifficulty;
-    setHabits(updated);
+  const deleteHabit = async (habitId) => {
+    try {
+      const habitRef = doc(db, 'habits', habitId);
+      await deleteDoc(habitRef);
+      fetchHabits();
+    } catch (err) {
+      setError('Failed to delete habit.');
+      console.error(err);
+    }
   };
 
-  const handlePriorityChange = (habitIndex, newPriority) => {
-    const updated = [...habits];
-    updated[habitIndex].priority = newPriority;
-    setHabits(updated);
+  // Helper to generate month grid for a habit
+  const getMonthDays = (habit, offset = 0) => {
+    const today = new Date();
+    const baseDate = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      const date = new Date(year, month, i + 1);
+      const key = date.toISOString().split('T')[0];
+      const done = habit.history?.[key];
+      return {
+        key,
+        done,
+        label: date.toLocaleDateString(undefined, { day: 'numeric' }),
+      };
+    });
   };
 
-  const weekDates = getWeekDates(selectedDate);
+  const generateMonthGrid = (habit) => {
+    return getMonthDays(habit, monthOffset).map(({ key, done, label }) => (
+      <div
+        key={key}
+        title={key}
+        className={styles.heatbox}
+        style={{
+          backgroundColor: done ? '#7C3AED' : '#E0E7FF',
+        }}
+        onClick={() => toggleHabitDay(habit, key)}
+      >
+        {label}
+      </div>
+    ));
+  };
 
-  // Calculate percentage for ring safely
-  const completionPercent =
-    analytics.total > 0
-      ? Math.round((analytics.completed / analytics.total) * 100)
-      : 0;
+  if (loading) return <div className={styles.container}>Loading habits...</div>;
 
-   return (
+  return (
     <div className={styles.container}>
-      <h2>Weekly Habit Tracker</h2>
+      <h2 className={styles.heading}>Habit Developer</h2>
+      {error && <div className={styles.error}>{error}</div>}
 
-      <div className={styles.controls}>
-        <label>
-          Select Date:{' '}
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
-        </label>
-
-        <div className={styles.add}>
-          <input
-            type="text"
-            placeholder="New habit"
-            value={newHabit}
-            onChange={(e) => setNewHabit(e.target.value)}
-          />
-          <button onClick={addHabit}>Add</button>
-        </div>
+      <div className={styles.habitInput}>
+        <input
+          type="text"
+          placeholder="New habit"
+          value={newHabitName}
+          onChange={(e) => setNewHabitName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && addHabit()}
+        />
+        <button onClick={addHabit}>Add Habit</button>
       </div>
 
-      {habits.length === 0 ? (
-        <p>No habits added yet.</p>
-      ) : (
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Habit</th>
-                <th>Difficulty</th>
-                <th>Priority</th>
-                {daysOfWeek.map((day, i) => (
-                  <th key={i}>{day}</th>
-                ))}
-                <th>Delete</th>
-              </tr>
-            </thead>
-            <tbody>
-              {habits.map((habit, habitIndex) => (
-                <tr key={habitIndex}>
-                  <td>
-                    {editingIndex === habitIndex ? (
-                      <input
-                        type="text"
-                        value={editingName}
-                        autoFocus
-                        onChange={(e) => setEditingName(e.target.value)}
-                        onBlur={saveEditing}
-                        onKeyDown={handleEditingKeyDown}
-                        className={styles.editInput}
-                      />
-                    ) : (
-                      <span
-                        onClick={() => startEditing(habitIndex)}
-                        style={{ cursor: 'pointer' }}
-                        title="Click to edit"
-                      >
-                        {habit.name}
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <select
-                      value={habit.difficulty}
-                      onChange={(e) =>
-                        handleDifficultyChange(habitIndex, e.target.value)
-                      }
-                    >
-                      <option value="easy">Easy</option>
-                      <option value="medium">Medium</option>
-                      <option value="hard">Hard</option>
-                    </select>
-                  </td>
-                  <td>
-                    <select
-                      value={habit.priority}
-                      onChange={(e) =>
-                        handlePriorityChange(habitIndex, e.target.value)
-                      }
-                    >
-                      <option value="low">Low</option>
-                      <option value="normal">Normal</option>
-                      <option value="high">High</option>
-                    </select>
-                  </td>
-                  {weekDates.map((dateStr, dayIndex) => (
-                    <td key={dayIndex}>
-                      <input
-                        type="checkbox"
-                        checked={habit.completedDates.includes(dateStr)}
-                        onChange={() => toggleDay(habitIndex, dateStr)}
-                      />
-                    </td>
-                  ))}
-                  <td>
-                    <button
-                      onClick={() => deleteHabit(habitIndex)}
-                      style={{ color: 'red' }}
-                    >
-                      &times;
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className={styles.toggleButtons}>
+        <button onClick={() => setView('week')}>Week View</button>
+        <button onClick={() => setView('month')}>Month View</button>
+      </div>
+
+      {view === 'week' && (
+        <div className={styles.weekNav}>
+          <button onClick={() => setWeekOffset((prev) => prev - 1)}>← Previous</button>
+          <span className={styles.weekLabel}>Week of {weekDates[0].key}</span>
+          <button onClick={() => setWeekOffset((prev) => prev + 1)}>Next →</button>
         </div>
       )}
 
-      <div className={styles.analytics}>
-        <h4>Today's Habit Completion</h4>
-        <ProgressRing
-          radius={60}
-          stroke={8}
-          progress={
-            analytics.total > 0
-              ? Math.round((analytics.completed / analytics.total) * 100)
-              : 0
-          }
-        />
-      </div>
+      {view === 'month' && (
+  <>
+    <div className={styles.monthNav}>
+      <button onClick={() => setMonthOffset((prev) => prev - 1)}>← Previous Month</button>
+      <span className={styles.monthLabel}>
+        {new Date(new Date().getFullYear(), new Date().getMonth() + monthOffset)
+          .toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+      </span>
+      <button onClick={() => setMonthOffset((prev) => prev + 1)}>Next Month →</button>
+    </div>
+
+    <div className={styles.monthGrid}>
+      {generateMonthCompletion(habits, monthOffset).map(({ key, completed, label }) => (
+        <div
+          key={key}
+          title={key}
+          className={styles.heatbox}
+          style={{
+            backgroundColor: completed ? '#7C3AED' : '#E0E7FF',
+          }}
+        >
+          {label}
+        </div>
+      ))}
+    </div>
+  </>
+)}
+
+
+      <ul className={styles.habitList}>
+        {habits.map((habit) => (
+          <li key={habit.id} className={styles.habitItem}>
+            <div className={styles.habitHeader}>
+              <strong>{habit.name}</strong>
+              <button className={styles.deleteBtn} onClick={() => deleteHabit(habit.id)}>Delete</button>
+            </div>
+
+            {view === 'week' ? (
+              <div className={styles.dayBoxes}>
+                {weekDates.map(({ key, fullLabel }) => {
+                  const isDone = habit.history?.[key];
+                  return (
+                    <div key={key} className={styles.dayColumn}>
+                      <div className={styles.dayLabel}>{fullLabel}</div>
+                      <div
+                        className={`${styles.dayBox} ${isDone ? styles.completed : styles.incomplete}`}
+                        onClick={() => toggleHabitDay(habit, key)}
+                        title={key}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.monthGrid}>
+                {generateMonthGrid(habit)}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

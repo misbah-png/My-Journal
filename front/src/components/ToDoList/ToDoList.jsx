@@ -1,4 +1,13 @@
 import { useState, useEffect } from 'react';
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from 'firebase/firestore';
+import { db } from '../../firebase'; 
 import styles from './ToDoList.module.css';
 
 const defaultCategories = ['Work', 'Personal', 'Shopping', 'Other'];
@@ -12,104 +21,163 @@ export default function ToDoList() {
   const [dueDateInput, setDueDateInput] = useState('');
   const [reminderInput, setReminderInput] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [categories, setCategories] = useState(defaultCategories);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Store categories dynamically, initialized from localStorage or default
-  const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem('todoCategories');
-    return saved ? JSON.parse(saved) : defaultCategories;
-  });
+  // Firestore collection reference
+  const tasksCollection = collection(db, 'todoTasks');
 
-  // Save tasks & categories to localStorage
+  // Fetch tasks from Firestore
+  const fetchTasks = async () => {
+    setLoading(true);
+    try {
+      const querySnapshot = await getDocs(tasksCollection);
+      const loadedTasks = [];
+      const loadedCategories = new Set(defaultCategories);
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        loadedTasks.push({ id: doc.id, ...data });
+        if (data.category) loadedCategories.add(data.category);
+      });
+      setTasks(loadedTasks);
+      setCategories([...loadedCategories]);
+      setError('');
+    } catch (err) {
+      setError('Failed to load tasks.');
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const savedTasks = localStorage.getItem('todoTasks');
-    if (savedTasks) setTasks(JSON.parse(savedTasks));
+    fetchTasks();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('todoTasks', JSON.stringify(tasks));
-  }, [tasks]);
-
-  useEffect(() => {
-    localStorage.setItem('todoCategories', JSON.stringify(categories));
-  }, [categories]);
-
-  // Add task
-  const addTask = () => {
-    if (!input.trim()) return;
-
-    // Add new category if not already in list and non-empty
-    if (categoryInput.trim() && !categories.includes(categoryInput.trim())) {
-      setCategories([...categories, categoryInput.trim()]);
+  // Add new task
+  const addTask = async () => {
+    if (!input.trim()) {
+      setError('Task text cannot be empty.');
+      return;
     }
-
-    const newTask = {
-      id: Date.now(),
-      text: input.trim(),
-      completed: false,
-      subtasks: [],
-      tags: tagInput ? tagInput.split(',').map(t => t.trim()) : [],
-      category: categoryInput.trim() || 'Other',
-      dueDate: dueDateInput || null,
-      reminder: reminderInput || null,
-      topTask: false,
-    };
-
-    setTasks([...tasks, newTask]);
-    setInput('');
-    setCategoryInput('');
-    setTagInput('');
-    setDueDateInput('');
-    setReminderInput('');
-    setShowAdd(false);
+    setError('');
+    try {
+      const newCategory = categoryInput.trim();
+      // Add category if new
+      if (newCategory && !categories.includes(newCategory)) {
+        setCategories((prev) => [...prev, newCategory]);
+      }
+      const newTask = {
+        text: input.trim(),
+        completed: false,
+        subtasks: [],
+        tags: tagInput ? tagInput.split(',').map((t) => t.trim()) : [],
+        category: newCategory || 'Other',
+        dueDate: dueDateInput || null,
+        reminder: reminderInput || null,
+        topTask: false,
+      };
+      await addDoc(tasksCollection, newTask);
+      // Reset inputs and hide form
+      setInput('');
+      setCategoryInput('');
+      setTagInput('');
+      setDueDateInput('');
+      setReminderInput('');
+      setShowAdd(false);
+      fetchTasks();
+    } catch (err) {
+      setError('Failed to add task.');
+      console.error(err);
+    }
   };
 
-  const toggleTask = (id) => {
-    setTasks(tasks.map(task => task.id === id ? { ...task, completed: !task.completed } : task));
+  // Toggle task completed
+  const toggleTask = async (task) => {
+    try {
+      const taskRef = doc(db, 'todoTasks', task.id);
+      await updateDoc(taskRef, { completed: !task.completed });
+      fetchTasks();
+    } catch (err) {
+      setError('Failed to update task.');
+      console.error(err);
+    }
   };
 
-  const deleteTask = (id) => {
-    setTasks(tasks.filter(task => task.id !== id));
+  // Delete task
+  const deleteTask = async (taskId) => {
+    try {
+      const taskRef = doc(db, 'todoTasks', taskId);
+      await deleteDoc(taskRef);
+      fetchTasks();
+    } catch (err) {
+      setError('Failed to delete task.');
+      console.error(err);
+    }
   };
 
-  const toggleTopTask = (id) => {
-    setTasks(tasks.map(task => task.id === id ? { ...task, topTask: !task.topTask } : task));
+  // Toggle Top Task
+  const toggleTopTask = async (task) => {
+    try {
+      const taskRef = doc(db, 'todoTasks', task.id);
+      await updateDoc(taskRef, { topTask: !task.topTask });
+      fetchTasks();
+    } catch (err) {
+      setError('Failed to update task.');
+      console.error(err);
+    }
   };
 
   // Subtask handlers
-  const addSubtask = (taskId, subtaskText) => {
+
+  const addSubtask = async (task, subtaskText) => {
     if (!subtaskText.trim()) return;
-    setTasks(tasks.map(task => {
-      if (task.id === taskId) {
-        const newSubtasks = [...task.subtasks, { id: Date.now(), text: subtaskText.trim(), completed: false }];
-        return { ...task, subtasks: newSubtasks };
-      }
-      return task;
-    }));
+    try {
+      const taskRef = doc(db, 'todoTasks', task.id);
+      const newSubtasks = [...task.subtasks, { id: Date.now(), text: subtaskText.trim(), completed: false }];
+      await updateDoc(taskRef, { subtasks: newSubtasks });
+      fetchTasks();
+    } catch (err) {
+      setError('Failed to add subtask.');
+      console.error(err);
+    }
   };
 
-  const toggleSubtask = (taskId, subtaskId) => {
-    setTasks(tasks.map(task => {
-      if (task.id === taskId) {
-        const newSubtasks = task.subtasks.map(st => st.id === subtaskId ? { ...st, completed: !st.completed } : st);
-        return { ...task, subtasks: newSubtasks };
-      }
-      return task;
-    }));
+  const toggleSubtask = async (task, subtaskId) => {
+    try {
+      const taskRef = doc(db, 'todoTasks', task.id);
+      const newSubtasks = task.subtasks.map((st) =>
+        st.id === subtaskId ? { ...st, completed: !st.completed } : st
+      );
+      await updateDoc(taskRef, { subtasks: newSubtasks });
+      fetchTasks();
+    } catch (err) {
+      setError('Failed to update subtask.');
+      console.error(err);
+    }
   };
 
-  const deleteSubtask = (taskId, subtaskId) => {
-    setTasks(tasks.map(task => {
-      if (task.id === taskId) {
-        const newSubtasks = task.subtasks.filter(st => st.id !== subtaskId);
-        return { ...task, subtasks: newSubtasks };
-      }
-      return task;
-    }));
+  const deleteSubtask = async (task, subtaskId) => {
+    try {
+      const taskRef = doc(db, 'todoTasks', task.id);
+      const newSubtasks = task.subtasks.filter((st) => st.id !== subtaskId);
+      await updateDoc(taskRef, { subtasks: newSubtasks });
+      fetchTasks();
+    } catch (err) {
+      setError('Failed to delete subtask.');
+      console.error(err);
+    }
   };
+
+  if (loading) {
+    return <div className={styles.loading}>Loading tasks...</div>;
+  }
 
   return (
     <div className={styles.container}>
       <h2 className={styles.heading}>To-Do List</h2>
+
+      {error && <div className={styles.error}>{error}</div>}
 
       {!showAdd && (
         <button
@@ -127,7 +195,7 @@ export default function ToDoList() {
             type="text"
             placeholder="New task"
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={(e) => setInput(e.target.value)}
             className={styles.input}
           />
 
@@ -136,13 +204,13 @@ export default function ToDoList() {
               type="text"
               placeholder="Category (type or pick)"
               value={categoryInput}
-              onChange={e => setCategoryInput(e.target.value)}
+              onChange={(e) => setCategoryInput(e.target.value)}
               className={styles.input}
               list="categories"
               autoComplete="off"
             />
             <datalist id="categories">
-              {categories.map(c => (
+              {categories.map((c) => (
                 <option key={c} value={c} />
               ))}
             </datalist>
@@ -151,12 +219,12 @@ export default function ToDoList() {
               type="text"
               placeholder="Tags (comma separated)"
               value={tagInput}
-              onChange={e => setTagInput(e.target.value)}
+              onChange={(e) => setTagInput(e.target.value)}
               className={styles.input}
               list="tags"
             />
             <datalist id="tags">
-              {defaultTags.map(t => (
+              {defaultTags.map((t) => (
                 <option key={t} value={t} />
               ))}
             </datalist>
@@ -168,7 +236,7 @@ export default function ToDoList() {
               <input
                 type="date"
                 value={dueDateInput}
-                onChange={e => setDueDateInput(e.target.value)}
+                onChange={(e) => setDueDateInput(e.target.value)}
                 className={styles.input}
                 style={{ marginLeft: '0.5rem', minWidth: '150px' }}
               />
@@ -179,7 +247,7 @@ export default function ToDoList() {
               <input
                 type="datetime-local"
                 value={reminderInput}
-                onChange={e => setReminderInput(e.target.value)}
+                onChange={(e) => setReminderInput(e.target.value)}
                 className={styles.input}
                 style={{ marginLeft: '0.5rem', minWidth: '220px' }}
               />
@@ -187,16 +255,10 @@ export default function ToDoList() {
           </div>
 
           <div className={styles.formRow} style={{ justifyContent: 'flex-start' }}>
-            <button
-              onClick={addTask}
-              className={styles.addButton}
-            >
+            <button onClick={addTask} className={styles.addButton}>
               Add Task
             </button>
-            <button
-              onClick={() => setShowAdd(false)}
-              className={styles.cancelButton}
-            >
+            <button onClick={() => setShowAdd(false)} className={styles.cancelButton}>
               Cancel
             </button>
           </div>
@@ -216,62 +278,42 @@ export default function ToDoList() {
                   <input
                     type="checkbox"
                     checked={task.completed}
-                    onChange={() => toggleTask(task.id)}
+                    onChange={() => toggleTask(task)}
                     className={styles.iconButton}
                   />
-                  <span
-                    className={styles.taskTitle}
-                    onClick={() => toggleTask(task.id)}
-                  >
+                  <span className={styles.taskTitle} onClick={() => toggleTopTask(task)} title="Toggle Top Task">
                     {task.text}
+                    {task.topTask && <span className={styles.topTaskBadge}>★</span>}
                   </span>
-                  {task.topTask && (
-                    <span className={styles.topBadge}>TOP</span>
-                  )}
                 </div>
 
-                <div>
-                  <button
-                    onClick={() => toggleTopTask(task.id)}
-                    title="Toggle Top Task"
-                    className={`${styles.iconButton} ${styles.star}`}
-                    aria-label="Toggle Top Task"
-                  >
-                    ★
-                  </button>
-                  <button
-                    onClick={() => deleteTask(task.id)}
-                    title="Delete task"
-                    className={`${styles.iconButton} ${styles.delete}`}
-                    aria-label="Delete task"
-                  >
-                    ×
-                  </button>
-                </div>
+                <button
+                  onClick={() => deleteTask(task.id)}
+                  aria-label="Delete task"
+                  className={styles.deleteButton}
+                >
+                  ✕
+                </button>
               </div>
 
-              <div className={styles.taskMeta}>
+              {/* Category & Tags */}
+              <div className={styles.metaInfo}>
                 <span className={styles.category}>{task.category}</span>
-                {task.tags.length > 0 && (
-                  <span>
-                    Tags:{' '}
-                    {task.tags.map((tag, i) => (
-                      <span key={i} className={styles.tag}>
-                        {tag}
-                      </span>
-                    ))}
+                {task.tags?.map((tag, i) => (
+                  <span key={i} className={styles.tag}>
+                    {tag}
                   </span>
-                )}
+                ))}
+              </div>
+
+              {/* Due date & reminder */}
+              <div className={styles.metaInfo}>
                 {task.dueDate && <span>Due: {task.dueDate}</span>}
                 {task.reminder && <span>Reminder: {new Date(task.reminder).toLocaleString()}</span>}
               </div>
 
-              <SubtaskSection
-                subtasks={task.subtasks}
-                onAdd={(text) => addSubtask(task.id, text)}
-                onToggle={(subtaskId) => toggleSubtask(task.id, subtaskId)}
-                onDelete={(subtaskId) => deleteSubtask(task.id, subtaskId)}
-              />
+              {/* Subtasks */}
+              <Subtasks task={task} addSubtask={addSubtask} toggleSubtask={toggleSubtask} deleteSubtask={deleteSubtask} />
             </li>
           ))}
       </ul>
@@ -279,61 +321,53 @@ export default function ToDoList() {
   );
 }
 
-function SubtaskSection({ subtasks, onAdd, onToggle, onDelete }) {
-  const [subInput, setSubInput] = useState('');
+// Subtasks component
+function Subtasks({ task, addSubtask, toggleSubtask, deleteSubtask }) {
+  const [newSubtask, setNewSubtask] = useState('');
+  const [showSubtasks, setShowSubtasks] = useState(false);
 
-  const handleAdd = () => {
-    if (!subInput.trim()) return;
-    onAdd(subInput);
-    setSubInput('');
+  const handleAddSubtask = () => {
+    addSubtask(task, newSubtask);
+    setNewSubtask('');
   };
 
   return (
-    <div className={styles.subtaskSection}>
-      <ul className={styles.subtaskList}>
-        {subtasks.map((subtask) => (
-          <li key={subtask.id} className={styles.subtaskItem}>
-            <label
-              className={`${subtask.completed ? styles.completed : ''}`}
-              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', flexGrow: 1 }}
-            >
-              <input
-                type="checkbox"
-                checked={subtask.completed}
-                onChange={() => onToggle(subtask.id)}
-                className={styles.iconButton}
-              />
-              {subtask.text}
-            </label>
-            <button
-              onClick={() => onDelete(subtask.id)}
-              className={`${styles.iconButton} ${styles.delete}`}
-              title="Delete subtask"
-              aria-label="Delete subtask"
-            >
-              ×
-            </button>
-          </li>
-        ))}
-      </ul>
+    <div className="subtasks">
+      <button
+        onClick={() => setShowSubtasks((prev) => !prev)}
+        className="toggle-subtasks-btn"
+      >
+        {showSubtasks ? 'Hide Subtasks' : `Show Subtasks (${task.subtasks?.length || 0})`}
+      </button>
 
-      <div className={styles.subtaskControls}>
-        <input
-          type="text"
-          placeholder="Add subtask"
-          value={subInput}
-          onChange={(e) => setSubInput(e.target.value)}
-          className={styles.subtaskInput}
-          onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-        />
-        <button
-          onClick={handleAdd}
-          className={styles.subtaskAddBtn}
-          aria-label="Add subtask"
-        >
-          +
-        </button>
-      </div>
+      {showSubtasks && (
+        <div className="subtasks-list">
+          <ul>
+            {(task.subtasks || []).map((sub) => (
+              <li key={sub.id} className={sub.completed ? 'subtask-completed' : ''}>
+                <input
+                  type="checkbox"
+                  checked={sub.completed}
+                  onChange={() => toggleSubtask(task, sub.id)}
+                />
+                <span>{sub.text}</span>
+                <button onClick={() => deleteSubtask(task, sub.id)}>✕</button>
+              </li>
+            ))}
+          </ul>
+
+          <input
+            type="text"
+            placeholder="New subtask"
+            value={newSubtask}
+            onChange={(e) => setNewSubtask(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAddSubtask();
+            }}
+          />
+          <button onClick={handleAddSubtask}>Add Subtask</button>
+        </div>
+      )}
     </div>
   );
 }
