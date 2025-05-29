@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import './Home.css';
 import RoutinePlanner from '../RoutinePlanner/RoutinePlanner'; 
 
@@ -14,7 +15,6 @@ function getGreeting(hour) {
 function StatRing({ title, value, max = 100, color, to }) {
   const percentage = Math.min((value / max) * 100, 100);
   const strokeDashoffset = 282 - (282 * percentage) / 100; 
-
 
   return (
     <Link to={to} className="stat-ring">
@@ -47,54 +47,71 @@ export function HomeStats() {
     totalHabitsToday: 0,
   });
 
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState(null);
+
   useEffect(() => {
-  const fetchStats = async () => {
-    const todayKey = new Date().toISOString().split('T')[0];
-    const userId = "demoUser"; // Replace with your auth user ID when ready
-
-    // Tasks
-    const tasksQuery = query(collection(db, 'todoTasks'), where('userId', '==', userId));
-    const tasksSnapshot = await getDocs(tasksQuery);
-    const tasks = tasksSnapshot.docs.map(doc => doc.data());
-    const completedTasks = tasks.filter(t => t.completed).length;
-
-    // Habits
-    const habitsQuery = query(collection(db, 'habits'), where('userId', '==', userId));
-    const habitsSnapshot = await getDocs(habitsQuery);
-    const habits = habitsSnapshot.docs.map(doc => doc.data());
-    const habitsCompletedToday = habits.reduce(
-      (count, habit) => count + (habit.completedDates?.includes(todayKey) ? 1 : 0),
-      0
-    );
-
-    setStats({
-      tasksCompleted: completedTasks,
-      totalTasks: tasks.length,
-      habitsCompletedToday,
-      totalHabitsToday: habits.length,
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        setUserId(null);
+        setStats({
+          tasksCompleted: 0,
+          totalTasks: 0,
+          habitsCompletedToday: 0,
+          totalHabitsToday: 0,
+        });
+        setLoading(false);
+      }
     });
-  };
 
-  fetchStats();
-}, []);
+    return () => unsubscribe();
+  }, []);
 
+  useEffect(() => {
+    if (!userId) return;
 
-  const cards = [
-    {
-      title: 'Tasks Done',
-      value: stats.tasksCompleted,
-      max: stats.totalTasks || 1,
-      color: '#d2467f',
-      to: '/tasks-and-habits',
-    },
-    {
-      title: 'Habits Today',
-      value: stats.habitsCompletedToday,
-      max: stats.totalHabitsToday || 1,
-      color: '#d2467f',
-      to: '/habit-tracker',
-    },
-  ]; // <-- Close the array here
+    const fetchStats = async () => {
+      setLoading(true);
+      const todayKey = new Date().toISOString().split('T')[0];
+
+      try {
+        // Tasks filtered by userId
+        const tasksQuery = query(collection(db, 'todoTasks'), where('userId', '==', userId));
+        const tasksSnapshot = await getDocs(tasksQuery);
+        const tasks = tasksSnapshot.docs.map(doc => doc.data());
+        const completedTasks = tasks.filter(t => t.completed).length;
+
+        // Habits filtered by userId
+        const habitsQuery = query(collection(db, 'habits'), where('userId', '==', userId));
+        const habitsSnapshot = await getDocs(habitsQuery);
+        const habits = habitsSnapshot.docs.map(doc => doc.data());
+        const habitsCompletedToday = habits.reduce(
+          (count, habit) => count + (habit.completedDates?.includes(todayKey) ? 1 : 0),
+          0
+        );
+
+        setStats({
+          tasksCompleted: completedTasks,
+          totalTasks: tasks.length,
+          habitsCompletedToday,
+          totalHabitsToday: habits.length,
+        });
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [userId]);
+
+  if (loading) return <p>Loading stats...</p>;
+
+  
 
   return (
     <div className="stats-ring-grid">
@@ -137,7 +154,6 @@ export default function Home() {
     }
   };
 
-  
   return (
     <div className="home-container">
       <div className="main-content">
@@ -201,10 +217,9 @@ export default function Home() {
           </div>
         </div>
 
-        <HomeStats />
+     
 
-
-        {/* Render the reusable RoutinePlanner component */}
+        
         <RoutinePlanner />
       </div>
     </div>

@@ -9,62 +9,72 @@ import addWeeks from 'date-fns/addWeeks';
 import addMonths from 'date-fns/addMonths';
 import isBefore from 'date-fns/isBefore';
 import enUS from 'date-fns/locale/en-US';
-import { db } from '../../firebase'; 
 import {
   collection,
   getDocs,
   setDoc,
   doc,
-  deleteDoc,
+  deleteDoc
 } from 'firebase/firestore';
+import { auth, db } from '../../firebase';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import styles from './Calendar.module.css';
 
-const locales = { 'en-US': enUS };
-const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales: { 'en-US': enUS }
+});
 
 const CalendarPage = () => {
   const [events, setEvents] = useState([]);
   const [view, setView] = useState('month');
   const [showForm, setShowForm] = useState(false);
-  const [editingEventIndex, setEditingEventIndex] = useState(null);
+  const [editingEventId, setEditingEventId] = useState(null);
   const [formEvent, setFormEvent] = useState({
     title: '',
     start: null,
     end: null,
     color: '#8a2be2',
     emoji: '',
-    repeat: 'none',
+    repeat: 'none'
   });
 
+  const user = auth.currentUser;
+
   useEffect(() => {
+    if (!user) return;
+
     const loadEvents = async () => {
-      const snapshot = await getDocs(collection(db, 'calendarEvents'));
+      const userEventsRef = collection(db, 'users', user.uid, 'calendarEvents');
+      const snapshot = await getDocs(userEventsRef);
       const loadedEvents = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         start: new Date(doc.data().start),
-        end: new Date(doc.data().end),
+        end: new Date(doc.data().end)
       }));
       setEvents(loadedEvents);
     };
+
     loadEvents();
-  }, []);
+  }, [user]);
 
   const handleSelectSlot = ({ start, end }) => {
     setFormEvent({ title: '', start, end, color: '#8a2be2', emoji: '', repeat: 'none' });
-    setEditingEventIndex(null);
+    setEditingEventId(null);
     setShowForm(true);
   };
 
   const handleSelectEvent = (event) => {
-    const index = events.findIndex((e) => e.id === event.id);
     setFormEvent({
       ...event,
       emoji: event.title.startsWith('🎉') ? '🎉' : '',
-      title: event.title.replace(/^.\s*/, ''),
+      title: event.title.replace(/^.\s*/, '')
     });
-    setEditingEventIndex(index);
+    setEditingEventId(event.id);
     setShowForm(true);
   };
 
@@ -90,7 +100,7 @@ const CalendarPage = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formEvent.title || !formEvent.start || !formEvent.end) {
+    if (!formEvent.title || !formEvent.start || !formEvent.end || !user) {
       alert('Please fill in all required fields');
       return;
     }
@@ -99,15 +109,15 @@ const CalendarPage = () => {
       ...formEvent,
       title: `${formEvent.emoji ? formEvent.emoji + ' ' : ''}${formEvent.title}`,
       start: formEvent.start.toISOString(),
-      end: formEvent.end.toISOString(),
+      end: formEvent.end.toISOString()
     };
 
-    if (editingEventIndex !== null) {
-      const eventId = events[editingEventIndex].id;
-      await setDoc(doc(db, 'calendarEvents', eventId), newEvent);
-      const updated = [...events];
-      updated[editingEventIndex] = { ...newEvent, id: eventId };
-      setEvents(updated);
+    const userEventsRef = collection(db, 'users', user.uid, 'calendarEvents');
+
+    if (editingEventId) {
+      const docRef = doc(userEventsRef, editingEventId);
+      await setDoc(docRef, newEvent);
+      setEvents(events.map(e => (e.id === editingEventId ? { ...newEvent, id: editingEventId } : e)));
     } else {
       const newEvents = formEvent.repeat === 'none'
         ? [newEvent]
@@ -115,33 +125,33 @@ const CalendarPage = () => {
             ...e,
             title: `${formEvent.emoji ? formEvent.emoji + ' ' : ''}${formEvent.title}`,
             start: e.start.toISOString(),
-            end: e.end.toISOString(),
+            end: e.end.toISOString()
           }));
 
       const savedEvents = [];
       for (const event of newEvents) {
         const id = crypto.randomUUID();
-        await setDoc(doc(db, 'calendarEvents', id), event);
+        await setDoc(doc(userEventsRef, id), event);
         savedEvents.push({ ...event, id });
       }
       setEvents([...events, ...savedEvents]);
     }
 
     setFormEvent({ title: '', start: null, end: null, color: '#8a2be2', emoji: '', repeat: 'none' });
-    setEditingEventIndex(null);
+    setEditingEventId(null);
     setShowForm(false);
   };
 
   const handleDelete = async () => {
-    if (editingEventIndex !== null && window.confirm('Delete this event?')) {
-      const updated = [...events];
-      const [deletedEvent] = updated.splice(editingEventIndex, 1);
-      await deleteDoc(doc(db, 'calendarEvents', deletedEvent.id));
-      setEvents(updated);
-      setFormEvent({ title: '', start: null, end: null, color: '#8a2be2', emoji: '', repeat: 'none' });
-      setEditingEventIndex(null);
-      setShowForm(false);
-    }
+    if (!user || !editingEventId) return;
+    if (!window.confirm('Delete this event?')) return;
+
+    const userEventRef = doc(db, 'users', user.uid, 'calendarEvents', editingEventId);
+    await deleteDoc(userEventRef);
+    setEvents(events.filter(e => e.id !== editingEventId));
+    setFormEvent({ title: '', start: null, end: null, color: '#8a2be2', emoji: '', repeat: 'none' });
+    setEditingEventId(null);
+    setShowForm(false);
   };
 
   return (
@@ -165,24 +175,24 @@ const CalendarPage = () => {
           onSelectEvent={handleSelectEvent}
           defaultView={view}
           view={view}
-          onView={(v) => setView(v)}
+          onView={setView}
           views={['month', 'week']}
           style={{ height: '100vh' }}
           eventPropGetter={(event) => ({
             style: {
               backgroundColor: event.color || '#8a2be2',
-              borderRadius: '8px',
+              borderRadius: '6px',
               color: 'white',
-              border: 'none',
-              paddingLeft: '6px',
-            },
+              padding: '4px',
+              fontSize: '0.85rem'
+            }
           })}
         />
 
         {showForm && (
           <div className={styles.modalOverlay} onClick={() => setShowForm(false)}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <h3>{editingEventIndex !== null ? 'Edit Event' : 'Add Event'}</h3>
+              <h3>{editingEventId ? 'Edit Event' : 'Add Event'}</h3>
               <form onSubmit={handleSave}>
                 <input
                   type="text"
@@ -217,7 +227,6 @@ const CalendarPage = () => {
                     onChange={(e) => setFormEvent(prev => ({ ...prev, color: e.target.value }))}
                   />
                 </label>
-                
                 <label>
                   Repeat:
                   <select
@@ -233,9 +242,9 @@ const CalendarPage = () => {
 
                 <div className={styles.buttonRow}>
                   <button type="submit" style={{ backgroundColor: '#8a2be2', color: 'white' }}>
-                    {editingEventIndex !== null ? 'Update' : 'Add'}
+                    {editingEventId ? 'Update' : 'Add'}
                   </button>
-                  {editingEventIndex !== null && (
+                  {editingEventId && (
                     <button type="button" onClick={handleDelete} style={{ backgroundColor: '#ccc' }}>
                       Delete
                     </button>

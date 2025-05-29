@@ -6,8 +6,9 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  onSnapshot
 } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { auth, db } from '../../firebase';
 import styles from './HabitTracker.module.css';
 
 const getTodayKey = () => new Date().toISOString().split('T')[0];
@@ -17,7 +18,7 @@ const getWeekDates = (weekOffset = 0) => {
   const current = new Date();
   current.setDate(today.getDate() + weekOffset * 7);
 
-  const dayIndex = current.getDay(); // 0 (Sun) - 6 (Sat)
+  const dayIndex = current.getDay();
   const start = new Date(current);
   start.setDate(current.getDate() - dayIndex);
 
@@ -27,7 +28,11 @@ const getWeekDates = (weekOffset = 0) => {
     return {
       key: date.toISOString().split('T')[0],
       label: date.toLocaleDateString(undefined, { weekday: 'short' }),
-      fullLabel: date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+      fullLabel: date.toLocaleDateString(undefined, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      }),
     };
   });
 };
@@ -43,7 +48,7 @@ const generateMonthCompletion = (habits, offset = 0) => {
   return Array.from({ length: daysInMonth }, (_, i) => {
     const date = new Date(year, month, i + 1);
     const key = date.toISOString().split('T')[0];
-    const allCompleted = habits.length > 0 && habits.every(habit => habit.history?.[key]);
+    const allCompleted = habits.length > 0 && habits.every((habit) => habit.history?.[key]);
     return {
       key,
       completed: allCompleted,
@@ -51,8 +56,6 @@ const generateMonthCompletion = (habits, offset = 0) => {
     };
   });
 };
-
-
 
 export default function HabitTracker() {
   const [habits, setHabits] = useState([]);
@@ -62,41 +65,45 @@ export default function HabitTracker() {
   const [view, setView] = useState('week');
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
+  const [userId, setUserId] = useState(null);
 
   const weekDates = getWeekDates(weekOffset);
-  const habitsCollection = collection(db, 'habits');
-
-  const fetchHabits = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const snapshot = await getDocs(habitsCollection);
-      const loaded = [];
-      snapshot.forEach((doc) => {
-        loaded.push({ id: doc.id, ...doc.data() });
-      });
-      setHabits(loaded);
-    } catch (err) {
-      setError('Failed to load habits.');
-      console.error(err);
-    }
-    setLoading(false);
-  };
 
   useEffect(() => {
-    fetchHabits();
-    // eslint-disable-next-line
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setUserId(user.uid);
+        const userHabitsRef = collection(db, 'users', user.uid, 'habits');
+
+        const unsubscribeSnapshot = onSnapshot(userHabitsRef, (snapshot) => {
+          const loaded = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setHabits(loaded);
+          setLoading(false);
+        });
+
+        return () => unsubscribeSnapshot();
+      } else {
+        setUserId(null);
+        setHabits([]);
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const addHabit = async () => {
-    if (!newHabitName.trim()) return;
+    if (!newHabitName.trim() || !userId) return;
     try {
-      await addDoc(habitsCollection, {
+      const userHabitsRef = collection(db, 'users', userId, 'habits');
+      await addDoc(userHabitsRef, {
         name: newHabitName.trim(),
         history: {},
       });
       setNewHabitName('');
-      fetchHabits();
     } catch (err) {
       setError('Failed to add habit.');
       console.error(err);
@@ -105,11 +112,10 @@ export default function HabitTracker() {
 
   const toggleHabitDay = async (habit, dayKey) => {
     try {
-      const habitRef = doc(db, 'habits', habit.id);
+      const habitRef = doc(db, 'users', userId, 'habits', habit.id);
       const updatedHistory = { ...(habit.history || {}) };
       updatedHistory[dayKey] = !updatedHistory[dayKey];
       await updateDoc(habitRef, { history: updatedHistory });
-      fetchHabits();
     } catch (err) {
       setError('Failed to update habit.');
       console.error(err);
@@ -118,20 +124,27 @@ export default function HabitTracker() {
 
   const deleteHabit = async (habitId) => {
     try {
-      const habitRef = doc(db, 'habits', habitId);
+      const habitRef = doc(db, 'users', userId, 'habits', habitId);
       await deleteDoc(habitRef);
-      fetchHabits();
     } catch (err) {
       setError('Failed to delete habit.');
       console.error(err);
     }
   };
 
-  // Helper to generate month grid for a habit
+  const updateHabitName = async (habitId, newName) => {
+    try {
+      const habitRef = doc(db, 'users', userId, 'habits', habitId);
+      await updateDoc(habitRef, { name: newName });
+    } catch (err) {
+      setError('Failed to rename habit.');
+      console.error(err);
+    }
+  };
+
   const getMonthDays = (habit, offset = 0) => {
     const today = new Date();
     const baseDate = new Date(today.getFullYear(), today.getMonth() + offset, 1);
-
     const year = baseDate.getFullYear();
     const month = baseDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -143,7 +156,7 @@ export default function HabitTracker() {
       return {
         key,
         done,
-        label: date.toLocaleDateString(undefined, { day: 'numeric' }),
+        label: date.getDate(),
       };
     });
   };
@@ -154,9 +167,7 @@ export default function HabitTracker() {
         key={key}
         title={key}
         className={styles.heatbox}
-        style={{
-          backgroundColor: done ? '#7C3AED' : '#E0E7FF',
-        }}
+        style={{ backgroundColor: done ? '#7C3AED' : '#E0E7FF' }}
         onClick={() => toggleHabitDay(habit, key)}
       >
         {label}
@@ -165,10 +176,11 @@ export default function HabitTracker() {
   };
 
   if (loading) return <div className={styles.container}>Loading habits...</div>;
+  if (!userId) return <div className={styles.container}>Please log in to use the habit tracker.</div>;
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.heading}>Habit Developer</h2>
+      <h2 className={styles.heading}>Habit Tracker</h2>
       {error && <div className={styles.error}>{error}</div>}
 
       <div className={styles.habitInput}>
@@ -196,39 +208,42 @@ export default function HabitTracker() {
       )}
 
       {view === 'month' && (
-  <>
-    <div className={styles.monthNav}>
-      <button onClick={() => setMonthOffset((prev) => prev - 1)}>← Previous Month</button>
-      <span className={styles.monthLabel}>
-        {new Date(new Date().getFullYear(), new Date().getMonth() + monthOffset)
-          .toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-      </span>
-      <button onClick={() => setMonthOffset((prev) => prev + 1)}>Next Month →</button>
-    </div>
+        <>
+          <div className={styles.monthNav}>
+            <button onClick={() => setMonthOffset((prev) => prev - 1)}>← Previous Month</button>
+            <span className={styles.monthLabel}>
+              {new Date(new Date().getFullYear(), new Date().getMonth() + monthOffset).toLocaleDateString(undefined, {
+                month: 'long',
+                year: 'numeric',
+              })}
+            </span>
+            <button onClick={() => setMonthOffset((prev) => prev + 1)}>Next Month →</button>
+          </div>
 
-    <div className={styles.monthGrid}>
-      {generateMonthCompletion(habits, monthOffset).map(({ key, completed, label }) => (
-        <div
-          key={key}
-          title={key}
-          className={styles.heatbox}
-          style={{
-            backgroundColor: completed ? '#7C3AED' : '#E0E7FF',
-          }}
-        >
-          {label}
-        </div>
-      ))}
-    </div>
-  </>
-)}
-
+          <div className={styles.monthGrid}>
+            {generateMonthCompletion(habits, monthOffset).map(({ key, completed, label }) => (
+              <div
+                key={key}
+                title={key}
+                className={styles.heatbox}
+                style={{ backgroundColor: completed ? '#7C3AED' : '#E0E7FF' }}
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <ul className={styles.habitList}>
         {habits.map((habit) => (
           <li key={habit.id} className={styles.habitItem}>
             <div className={styles.habitHeader}>
-              <strong>{habit.name}</strong>
+              <input
+                value={habit.name}
+                onChange={(e) => updateHabitName(habit.id, e.target.value)}
+                className={styles.habitNameInput}
+              />
               <button className={styles.deleteBtn} onClick={() => deleteHabit(habit.id)}>Delete</button>
             </div>
 
