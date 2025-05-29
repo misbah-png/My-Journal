@@ -180,7 +180,7 @@ export default function HabitTracker() {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.heading}>Habit Tracker</h2>
+      <h2 className={styles.heading}>Habit Developer</h2>
       {error && <div className={styles.error}>{error}</div>}
 
       <div className={styles.habitInput}>
